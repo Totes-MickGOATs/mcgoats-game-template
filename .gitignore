@@ -1,0 +1,81 @@
+# =============================================================================
+# Common
+# =============================================================================
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+dist/
+build/
+
+# IDE
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# Environment
+.env
+.env.local
+*.local
+
+# Claude Code worktrees
+.claude-worktrees/
+
+# Serena
+.serena/
+
+# =============================================================================
+# Godot (active after engine setup)
+# =============================================================================
+# .godot/
+# *.translation
+# export_presets.cfg
+
+# =============================================================================
+# Unity (active after engine setup)
+# =============================================================================
+# [Ll]ibrary/
+# [Tt]emp/
+# [Oo]bj/
+# [Bb]uild/
+# [Bb]uilds/
+# [Ll]ogs/
+# [Uu]ser[Ss]ettings/
+# *.csproj
+# *.sln
+# *.suo
+# *.tmp
+# *.user
+# *.userprefs
+# *.pidb
+# *.booproj
+# *.svd
+# *.pdb
+# *.mdb
+# *.opendb
+# *.VC.db
+# *.pidb.meta
+# *.pdb.meta
+# *.mdb.meta
+# crashlytics-buildid.txt
+
+# =============================================================================
+# Unreal (active after engine setup)
+# =============================================================================
+# Binaries/
+# DerivedDataCache/
+# Intermediate/
+# Saved/
+# *.VC.opendb
+# *.opensdf
+# *.sdf
+# *.suo
+# *.xcworkspace

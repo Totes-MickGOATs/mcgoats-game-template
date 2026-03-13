@@ -1,0 +1,10 @@
+# Unity engine recipes — imported by root justfile
+
+# Run tests via Unity Test Runner CLI
+test:
+    @echo "Run tests via Unity Editor: Window > General > Test Runner"
+    @echo "CLI: Unity -batchmode -runTests -testPlatform EditMode -projectPath ."
+
+# Open project in Unity
+editor:
+    @echo "Open Unity Hub and select this project"

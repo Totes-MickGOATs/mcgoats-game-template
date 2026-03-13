@@ -1,0 +1,125 @@
+name: CI Monitor
+
+# Runs after the main CI workflow completes
+on:
+  workflow_run:
+    workflows: ["CI", "Post-Merge Tests"]
+    types: [completed]
+
+permissions:
+  issues: write
+  contents: read
+  actions: read
+
+jobs:
+  report-failure:
+    name: Report CI Failure
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion == 'failure'
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Collect failure details
+        id: failure
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          RUN_ID=${{ github.event.workflow_run.id }}
+          BRANCH=${{ github.event.workflow_run.head_branch }}
+          COMMIT=${{ github.event.workflow_run.head_sha }}
+          COMMIT_SHORT=${COMMIT:0:7}
+
+          FAILED_JOBS=$(gh api "repos/${{ github.repository }}/actions/runs/$RUN_ID/jobs" \
+            --jq '[.jobs[] | select(.conclusion == "failure") | .name] | join(", ")' 2>/dev/null || echo "unknown")
+
+          FAILURE_LOG=$(gh run view "$RUN_ID" --repo "${{ github.repository }}" --log-failed 2>&1 | tail -50 || echo "Could not retrieve logs")
+
+          {
+            echo "failed_jobs=$FAILED_JOBS"
+            echo "branch=$BRANCH"
+            echo "commit=$COMMIT_SHORT"
+            echo "run_id=$RUN_ID"
+          } >> "$GITHUB_OUTPUT"
+
+          echo "$FAILURE_LOG" > /tmp/failure_log.txt
+
+      - name: Check for existing open issue
+        id: existing
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          EXISTING=$(gh issue list \
+            --label "ci-failure" \
+            --state open \
+            --json number \
+            --jq '.[0].number // empty' 2>/dev/null || echo "")
+          echo "issue_number=$EXISTING" >> "$GITHUB_OUTPUT"
+
+      - name: Create or update CI failure issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TITLE="CI Failure: ${{ steps.failure.outputs.failed_jobs }} (${{ steps.failure.outputs.commit }})"
+
+          cat > /tmp/issue_body.md <<'HEADER'
+          ## CI Failure Report
+          HEADER
+
+          cat >> /tmp/issue_body.md <<DETAILS
+          | Field | Value |
+          |-------|-------|
+          | **Branch** | \`${{ steps.failure.outputs.branch }}\` |
+          | **Commit** | \`${{ steps.failure.outputs.commit }}\` |
+          | **Failed Jobs** | ${{ steps.failure.outputs.failed_jobs }} |
+          | **Run** | [View logs](https://github.com/${{ github.repository }}/actions/runs/${{ steps.failure.outputs.run_id }}) |
+          DETAILS
+
+          cat >> /tmp/issue_body.md <<'LOGS'
+
+          ### Failure Log (last 50 lines)
+          ```
+          LOGS
+          cat /tmp/failure_log.txt >> /tmp/issue_body.md
+          echo '```' >> /tmp/issue_body.md
+
+          cat >> /tmp/issue_body.md <<'INSTRUCTIONS'
+
+          ### Instructions for Claude Code
+          Run `/ci:fix-ci` to diagnose and fix this failure automatically.
+          INSTRUCTIONS
+
+          if [ -n "${{ steps.existing.outputs.issue_number }}" ]; then
+            gh issue comment "${{ steps.existing.outputs.issue_number }}" \
+              --body-file /tmp/issue_body.md
+            echo "Updated issue #${{ steps.existing.outputs.issue_number }}"
+          else
+            gh issue create \
+              --title "$TITLE" \
+              --body-file /tmp/issue_body.md \
+              --label "ci-failure" \
+              --label "needs-agent-fix"
+            echo "Created new CI failure issue"
+          fi
+
+  report-recovery:
+    name: Report CI Recovery
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion == 'success'
+    steps:
+      - name: Close CI failure issues
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          OPEN_ISSUES=$(gh issue list \
+            --repo "${{ github.repository }}" \
+            --label "ci-failure" \
+            --state open \
+            --json number \
+            --jq '.[].number' 2>/dev/null || echo "")
+
+          for ISSUE in $OPEN_ISSUES; do
+            gh issue close "$ISSUE" \
+              --repo "${{ github.repository }}" \
+              --comment "CI is green on \`${{ github.event.workflow_run.head_branch }}\`. [Run ${{ github.event.workflow_run.id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }})"
+            echo "Closed issue #$ISSUE"
+          done

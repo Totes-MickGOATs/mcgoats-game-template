@@ -1,0 +1,199 @@
+name: CI
+
+on:
+  push:
+    branches: [master, 'release/**']
+  pull_request:
+    branches: [master, 'release/**']
+  schedule:
+    - cron: '0 4 * * *'
+  workflow_dispatch:
+
+# Cancel in-progress runs for the same branch/PR (keeps latest only)
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ── Common lint (Python, PR title, CLAUDE.md freshness, cross-PR conflicts) ──
+  lint:
+    name: Lint & Preflight
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          lfs: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Lint Python
+        run: uv run ruff check scripts/tools/
+
+      - name: Validate system registry
+        run: uv run python scripts/tools/validate_registry.py
+
+      - name: Check CLAUDE.md freshness
+        continue-on-error: true
+        run: uv run python scripts/tools/validate_claude_md.py --threshold 30
+
+      - name: Check test coverage (regression guard)
+        id: coverage
+        continue-on-error: true
+        run: |
+          uv run python scripts/tools/test_coverage_report.py --ci 2>&1 | tee coverage_output.txt || true
+          echo "report<<COVERAGE_EOF" >> "$GITHUB_OUTPUT"
+          cat coverage_output.txt >> "$GITHUB_OUTPUT"
+          echo "COVERAGE_EOF" >> "$GITHUB_OUTPUT"
+
+      - name: Comment coverage delta on PR
+        if: github.event_name == 'pull_request' && always()
+        continue-on-error: true
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const body = `### Test Coverage Report\n\`\`\`\n${process.env.REPORT}\n\`\`\`\n`;
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find(c => c.body.includes('### Test Coverage Report'));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+        env:
+          REPORT: ${{ steps.coverage.outputs.report }}
+
+      - name: Validate PR title (conventional commit format)
+        if: github.event_name == 'pull_request'
+        run: |
+          TITLE="${{ github.event.pull_request.title }}"
+          if ! echo "$TITLE" | grep -qE '^(feat|fix|refactor|test|docs|chore|ci|style|perf|build)(\([a-z0-9_-]+\))?: .{3,}'; then
+            echo "::error::PR title does not follow conventional commit format: $TITLE"
+            echo ""
+            echo "Expected: type: short description"
+            echo "Valid types: feat, fix, refactor, test, docs, chore, ci, style, perf, build"
+            exit 1
+          fi
+          echo "PR title format OK: $TITLE"
+
+      - name: Detect cross-PR file conflicts
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const prNumber = context.issue.number;
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            const { data: thisFiles } = await github.rest.pulls.listFiles({
+              owner, repo, pull_number: prNumber, per_page: 100,
+            });
+            const thisFilenames = new Set(thisFiles.map(f => f.filename));
+
+            const { data: openPrs } = await github.rest.pulls.list({
+              owner, repo, state: 'open', base: 'master', per_page: 50,
+            });
+            const otherPrs = openPrs.filter(pr => pr.number !== prNumber);
+
+            if (otherPrs.length === 0) {
+              core.info('No other open PRs — no conflicts possible.');
+              return;
+            }
+
+            const conflicts = [];
+            for (const other of otherPrs) {
+              const { data: otherFiles } = await github.rest.pulls.listFiles({
+                owner, repo, pull_number: other.number, per_page: 100,
+              });
+              const overlap = otherFiles
+                .map(f => f.filename)
+                .filter(f => thisFilenames.has(f));
+
+              if (overlap.length > 0) {
+                conflicts.push({ pr: other.number, title: other.title, files: overlap });
+              }
+            }
+
+            if (conflicts.length === 0) {
+              core.info('No file conflicts with other open PRs.');
+              return;
+            }
+
+            let body = '### Cross-PR File Conflict Warning\n\n';
+            body += 'This PR modifies files that are also changed in other open PRs:\n\n';
+            for (const c of conflicts) {
+              body += `**PR #${c.pr}** — ${c.title}\n`;
+              for (const f of c.files) {
+                body += `- \`${f}\`\n`;
+              }
+              body += '\n';
+            }
+            body += 'Coordinate with the other PR author(s) to avoid merge conflicts.\n\n';
+            body += `_This comment was posted by the [CI workflow](${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId})._`;
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner, repo, issue_number: prNumber,
+            });
+            const existing = comments.find(c =>
+              c.body.includes('### Cross-PR File Conflict Warning')
+            );
+            if (existing) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number: prNumber, body });
+            }
+
+            core.warning(`File conflicts detected with ${conflicts.length} other PR(s)`);
+
+  # ── Auto-label PRs based on CI results ──
+  auto-label:
+    name: Auto-Label PR
+    runs-on: ubuntu-latest
+    needs: [lint]
+    if: always() && github.event_name == 'pull_request'
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Add ready-to-merge label (lint passed)
+        if: needs.lint.result == 'success'
+        env:
+          GH_TOKEN: ${{ secrets.MERGE_TOKEN || github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh api repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/labels \
+            --method POST --field "labels[]=ready-to-merge"
+          echo "Added ready-to-merge label to PR #${{ github.event.pull_request.number }}"
+
+      - name: Remove ready-to-merge label (lint failed)
+        if: needs.lint.result != 'success'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.MERGE_TOKEN || github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh api repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/labels/ready-to-merge \
+            --method DELETE || true
+          echo "Removed ready-to-merge label from PR #${{ github.event.pull_request.number }}"

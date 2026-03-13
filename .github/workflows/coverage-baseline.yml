@@ -1,0 +1,51 @@
+name: Update Coverage Baseline
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'tests/test_*.gd'
+      - 'tests/test_*.cs'
+      - 'tests/test_*.cpp'
+      - 'scripts/tools/test_coverage_report.py'
+
+jobs:
+  update-baseline:
+    name: Ratchet Coverage Baseline
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          lfs: false
+          token: ${{ secrets.MERGE_TOKEN || secrets.GITHUB_TOKEN }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Generate new baseline
+        run: uv run python scripts/tools/test_coverage_report.py --save-baseline
+
+      - name: Check for baseline changes
+        id: diff
+        run: |
+          if git diff --quiet .coverage-baseline.json; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Commit updated baseline
+        if: steps.diff.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .coverage-baseline.json
+          git commit -m "chore: auto-update coverage baseline [skip ci]"
+          git push

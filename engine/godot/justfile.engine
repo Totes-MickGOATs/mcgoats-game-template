@@ -1,0 +1,48 @@
+# Godot engine recipes — imported by root justfile
+
+# Run a single test file (fast TDD cycle)
+test-fast FILE:
+    @echo "Running test: {{FILE}}"
+    #!/usr/bin/env bash
+    file="{{FILE}}"
+    # Strip tests/ prefix and .gd suffix if present, then re-add them
+    file="${file#tests/}"
+    file="${file%.gd}"
+    godot --headless --script addons/gut/gut_cmdln.gd -gtest="res://tests/${file}.gd" -gexit
+
+# Run full test suite
+test:
+    godot --headless --script addons/gut/gut_cmdln.gd -gexit
+
+# Seed import cache (required before first godot run in worktrees)
+seed-import:
+    #!/usr/bin/env bash
+    if [ ! -d ".godot/imported" ]; then
+        MAIN_IMPORTED="$(git rev-parse --show-toplevel)/.godot/imported"
+        if [ -d "$MAIN_IMPORTED" ]; then
+            mkdir -p .godot
+            # Windows: junction; Unix: symlink
+            if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" ]]; then
+                cmd //c "mklink /J \"$(pwd -W)\\.godot\\imported\" \"$(cd "$MAIN_IMPORTED" && pwd -W)\""
+            else
+                ln -s "$MAIN_IMPORTED" .godot/imported
+            fi
+            echo "Import cache seeded."
+        else
+            echo "Warning: No import cache found. Open the project in Godot editor first."
+        fi
+    else
+        echo "Import cache already exists."
+    fi
+
+# Lint GDScript files
+gdscript-lint *FILES:
+    gdlint {{FILES}}
+
+# Format GDScript files
+gdscript-format *FILES:
+    gdformat {{FILES}}
+
+# Open project in Godot editor
+editor:
+    godot --editor &

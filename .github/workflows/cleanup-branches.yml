@@ -1,0 +1,45 @@
+name: Cleanup Stale Branches
+
+on:
+  schedule:
+    # Run daily at 5 AM UTC
+    - cron: '0 5 * * *'
+  workflow_dispatch:  # Manual trigger
+
+jobs:
+  cleanup:
+    name: Delete Merged Branches
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Delete merged feature branches
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "=== Stale Branch Cleanup ==="
+          DELETED=0
+
+          # Get all remote branches except master, release/*, and dependabot/*
+          BRANCHES=$(git branch -r --merged origin/master | grep -vE 'origin/(master|release/|HEAD|dependabot/)' | sed 's|origin/||' | tr -d ' ')
+
+          for BRANCH in $BRANCHES; do
+            [ -z "$BRANCH" ] && continue
+            # Only delete feat/* and worktree-agent-* branches
+            case "$BRANCH" in
+              feat/*|worktree-agent-*|fix/*|refactor/*|test/*|docs/*|chore/*)
+                echo "Deleting merged branch: $BRANCH"
+                git push origin --delete "$BRANCH" 2>/dev/null || true
+                DELETED=$((DELETED + 1))
+                ;;
+              *)
+                echo "Skipping non-standard branch: $BRANCH"
+                ;;
+            esac
+          done
+
+          echo "=== Deleted $DELETED merged branch(es) ==="

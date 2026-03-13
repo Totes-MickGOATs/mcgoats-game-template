@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "UnityMCP": {
+      "command": "node",
+      "args": ["node_modules/@anthropic/unity-mcp/dist/index.js"],
+      "env": {}
+    }
+  }
+}

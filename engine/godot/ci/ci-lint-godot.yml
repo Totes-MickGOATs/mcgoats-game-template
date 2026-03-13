@@ -1,0 +1,29 @@
+name: Lint — Godot
+
+on:
+  workflow_call:
+
+jobs:
+  gdscript-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Install Python deps
+        run: uv sync
+
+      - name: Install gdtoolkit
+        run: uv add --dev "gdtoolkit>=4.5"
+
+      - name: Lint GDScript
+        run: |
+          find . -name "*.gd" -not -path "./.godot/*" -not -path "./addons/*" | head -500 | xargs uv run gdlint
+
+      - name: Parse check GDScript
+        run: |
+          find . -name "*.gd" -not -path "./.godot/*" -not -path "./addons/*" | head -500 | while read f; do
+            uv run gdparse "$f" >/dev/null 2>&1 || { echo "Parse error: $f"; exit 1; }
+          done

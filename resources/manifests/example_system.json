@@ -1,0 +1,8 @@
+{
+  "name": "example_system",
+  "description": "Example system manifest — copy this as a starting point for new systems",
+  "status": "EXPERIMENTAL",
+  "files": [],
+  "dependencies": [],
+  "replaced_by": ""
+}

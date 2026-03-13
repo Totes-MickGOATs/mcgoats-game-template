@@ -1,0 +1,453 @@
+name: Auto-Merge Queue
+
+# Event-driven merge queue: serializes PR merges to master so each PR tests
+# against the actual current master before merging. Replaces polling with
+# event triggers for faster, more efficient operation.
+
+on:
+  # Trigger when CI auto-adds ready-to-merge label
+  pull_request:
+    types: [labeled]
+  # After a merge completes, process next PR in queue
+  push:
+    branches: [master]
+  # Manual trigger for debugging
+  workflow_dispatch:
+
+# Serialize all merge operations — only one merge at a time
+concurrency:
+  group: merge-queue
+  cancel-in-progress: false
+
+jobs:
+  merge-next:
+    name: Merge Next PR
+    runs-on: ubuntu-latest
+    # Only run for the ready-to-merge label (or push/dispatch)
+    if: >
+      github.event_name == 'push' ||
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'pull_request' && github.event.label.name == 'ready-to-merge')
+    permissions:
+      contents: write
+      pull-requests: write
+      checks: read
+      actions: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.MERGE_TOKEN || github.token }}
+
+      - name: Find oldest ready-to-merge PR (FIFO by label time)
+        id: find-pr
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const { data: prs } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              base: 'master',
+              per_page: 100,
+            });
+
+            const ready = prs.filter(pr =>
+              pr.labels.some(l => l.name === 'ready-to-merge')
+            );
+
+            if (ready.length === 0) {
+              core.info('No PRs with ready-to-merge label found.');
+              core.setOutput('found', 'false');
+              return;
+            }
+
+            // Sort by when the ready-to-merge label was applied (FIFO)
+            const labelTimes = [];
+            for (const pr of ready) {
+              try {
+                const { data: events } = await github.rest.issues.listEvents({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: pr.number,
+                  per_page: 100,
+                });
+                const labelEvents = events
+                  .filter(e => e.event === 'labeled' && e.label.name === 'ready-to-merge')
+                  .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+                const labeledAt = labelEvents.length > 0
+                  ? labelEvents[0].created_at
+                  : pr.created_at;
+                labelTimes.push({ pr, labeledAt });
+              } catch (e) {
+                core.warning(`Could not fetch events for PR #${pr.number}: ${e.message}`);
+                labelTimes.push({ pr, labeledAt: pr.created_at });
+              }
+            }
+
+            // Sort ascending — oldest label first = first in queue
+            labelTimes.sort((a, b) => new Date(a.labeledAt) - new Date(b.labeledAt));
+
+            const pr = labelTimes[0].pr;
+            core.setOutput('found', 'true');
+            core.setOutput('number', pr.number);
+            core.setOutput('head_ref', pr.head.ref);
+            core.setOutput('head_sha', pr.head.sha);
+            core.setOutput('title', pr.title);
+            core.info(`Found PR #${pr.number}: ${pr.title} (labeled at ${labelTimes[0].labeledAt})`);
+
+      - name: Check CI status
+        if: steps.find-pr.outputs.found == 'true'
+        id: ci-status
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const pr_number = ${{ steps.find-pr.outputs.number }};
+            const head_sha = '${{ steps.find-pr.outputs.head_sha }}';
+
+            const { data: checkRuns } = await github.rest.checks.listForRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: head_sha,
+              per_page: 100,
+            });
+
+            core.info(`Found ${checkRuns.total_count} check runs for ${head_sha.substring(0, 7)}`);
+
+            // Required checks — customize per project via template-config.json
+            const required = ['Lint & Preflight'];
+            const results = {};
+
+            for (const name of required) {
+              const matching = checkRuns.check_runs
+                .filter(r => r.name === name)
+                .sort((a, b) => b.id - a.id);
+              const run = matching[0];
+              if (!run) {
+                results[name] = 'missing';
+              } else if (run.status !== 'completed') {
+                results[name] = 'pending';
+              } else {
+                results[name] = run.conclusion;
+              }
+            }
+
+            core.info(`CI results: ${JSON.stringify(results)}`);
+
+            const allPassed = required.every(n => results[n] === 'success');
+            const anyFailed = required.some(n => results[n] === 'failure');
+            const anyPending = required.some(n =>
+              results[n] === 'pending' || results[n] === 'missing'
+            );
+
+            core.setOutput('passed', allPassed ? 'true' : 'false');
+            core.setOutput('failed', anyFailed ? 'true' : 'false');
+            core.setOutput('pending', anyPending ? 'true' : 'false');
+            core.setOutput('details', JSON.stringify(results));
+
+      - name: Handle CI failure — remove label, comment, track failures
+        if: >
+          steps.find-pr.outputs.found == 'true' &&
+          steps.ci-status.outputs.failed == 'true'
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const pr_number = ${{ steps.find-pr.outputs.number }};
+            const details = ${{ steps.ci-status.outputs.details }};
+            const MAX_FAILURES = 3;
+
+            try {
+              await github.rest.issues.removeLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr_number,
+                name: 'ready-to-merge',
+              });
+            } catch (e) {
+              core.warning(`Could not remove label: ${e.message}`);
+            }
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr_number,
+            });
+            const failureCount = comments.filter(c =>
+              c.body.includes('Auto-merge blocked: CI failed')
+            ).length + 1;
+
+            let body = `## Auto-merge blocked: CI failed (attempt ${failureCount}/${MAX_FAILURES})\n\nCI check results:\n\`\`\`json\n${JSON.stringify(details, null, 2)}\n\`\`\`\n\n`;
+
+            if (failureCount >= MAX_FAILURES) {
+              body += `**This PR has failed CI ${failureCount} times.** Removed from merge queue. Investigate the failures, fix them, and re-add \`ready-to-merge\` when confident CI will pass.\n\n`;
+              try {
+                await github.rest.issues.addLabels({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: pr_number,
+                  labels: ['ci-failed'],
+                });
+              } catch (e) {
+                core.warning(`Could not add ci-failed label: ${e.message}`);
+              }
+            } else {
+              body += `Fix the failures and re-add the \`ready-to-merge\` label when ready.\n\n`;
+            }
+
+            body += `_This comment was posted by the [auto-merge workflow](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})._`;
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr_number,
+              body,
+            });
+
+            core.info(`Removed ready-to-merge label and commented on PR #${pr_number} (failure ${failureCount}/${MAX_FAILURES})`);
+
+      - name: Check if PR is up-to-date with master
+        if: >
+          steps.find-pr.outputs.found == 'true' &&
+          steps.ci-status.outputs.failed != 'true'
+        id: up-to-date
+        run: |
+          git fetch origin master
+          HEAD_SHA="${{ steps.find-pr.outputs.head_sha }}"
+          MASTER_SHA=$(git rev-parse origin/master)
+          MERGE_BASE=$(git merge-base "$HEAD_SHA" "$MASTER_SHA")
+
+          if [ "$MERGE_BASE" = "$MASTER_SHA" ]; then
+            echo "up_to_date=true" >> "$GITHUB_OUTPUT"
+            echo "PR is up-to-date with master"
+          else
+            echo "up_to_date=false" >> "$GITHUB_OUTPUT"
+            echo "PR is behind master (merge-base: $MERGE_BASE, master: $MASTER_SHA)"
+          fi
+
+      - name: Rebase PR behind master — update branch
+        if: >
+          steps.find-pr.outputs.found == 'true' &&
+          steps.ci-status.outputs.passed == 'true' &&
+          steps.up-to-date.outputs.up_to_date == 'false'
+        id: rebase-update
+        uses: actions/github-script@v8
+        with:
+          github-token: ${{ secrets.MERGE_TOKEN || github.token }}
+          script: |
+            const pr_number = ${{ steps.find-pr.outputs.number }};
+
+            try {
+              await github.rest.pulls.updateBranch({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: pr_number,
+              });
+              core.setOutput('updated', 'true');
+              core.info(`Updated PR #${pr_number} branch — CI will re-run via synchronize trigger.`);
+            } catch (e) {
+              core.setOutput('updated', 'false');
+              core.warning(`Could not update branch: ${e.message}`);
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr_number,
+                body: `## Auto-merge blocked: merge conflict\n\nCould not update branch with master: ${e.message}\n\nResolve conflicts manually and re-add the \`ready-to-merge\` label.\n\n_This comment was posted by the [auto-merge workflow](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})._`,
+              });
+
+              try {
+                await github.rest.issues.removeLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: pr_number,
+                  name: 'ready-to-merge',
+                });
+              } catch (e2) {
+                core.warning(`Could not remove label: ${e2.message}`);
+              }
+            }
+
+      - name: Update stale branch — CI missing/pending and behind master
+        if: >
+          steps.find-pr.outputs.found == 'true' &&
+          steps.ci-status.outputs.pending == 'true' &&
+          steps.up-to-date.outputs.up_to_date == 'false'
+        id: stale-update
+        uses: actions/github-script@v8
+        with:
+          github-token: ${{ secrets.MERGE_TOKEN || github.token }}
+          script: |
+            const pr_number = ${{ steps.find-pr.outputs.number }};
+
+            try {
+              await github.rest.pulls.updateBranch({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: pr_number,
+              });
+              core.setOutput('updated', 'true');
+              core.info(`Updated stale PR #${pr_number} branch — CI will re-run via synchronize trigger.`);
+            } catch (e) {
+              core.setOutput('updated', 'false');
+              core.warning(`Could not update stale branch: ${e.message}`);
+            }
+
+      - name: Dispatch CI after branch update
+        if: >
+          steps.find-pr.outputs.found == 'true' &&
+          (steps.rebase-update.outputs.updated == 'true' ||
+           steps.stale-update.outputs.updated == 'true')
+        uses: actions/github-script@v8
+        with:
+          github-token: ${{ secrets.MERGE_TOKEN || github.token }}
+          script: |
+            const head_ref = '${{ steps.find-pr.outputs.head_ref }}';
+            const pr_number = ${{ steps.find-pr.outputs.number }};
+
+            try {
+              await github.rest.actions.createWorkflowDispatch({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                workflow_id: 'ci.yml',
+                ref: head_ref,
+              });
+              core.info(`Dispatched CI on ${head_ref} for PR #${pr_number}`);
+            } catch (e) {
+              core.warning(`Could not dispatch CI: ${e.message}`);
+            }
+
+      - name: Dispatch CI — missing checks on up-to-date branch
+        if: >
+          steps.find-pr.outputs.found == 'true' &&
+          steps.ci-status.outputs.pending == 'true' &&
+          steps.up-to-date.outputs.up_to_date == 'true'
+        uses: actions/github-script@v8
+        with:
+          github-token: ${{ secrets.MERGE_TOKEN || github.token }}
+          script: |
+            const head_ref = '${{ steps.find-pr.outputs.head_ref }}';
+            const pr_number = ${{ steps.find-pr.outputs.number }};
+
+            try {
+              await github.rest.actions.createWorkflowDispatch({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                workflow_id: 'ci.yml',
+                ref: head_ref,
+              });
+              core.info(`Dispatched CI on up-to-date ${head_ref} for PR #${pr_number} (missing checks)`);
+            } catch (e) {
+              core.warning(`Could not dispatch CI: ${e.message}`);
+            }
+
+      - name: Fallback re-label after branch update
+        if: >
+          steps.find-pr.outputs.found == 'true' &&
+          (steps.rebase-update.outputs.updated == 'true' ||
+           steps.stale-update.outputs.updated == 'true')
+        uses: actions/github-script@v8
+        with:
+          github-token: ${{ secrets.MERGE_TOKEN || github.token }}
+          script: |
+            const prNumber = ${{ steps.find-pr.outputs.number }};
+            const maxWait = 10 * 60 * 1000;
+            const pollInterval = 30 * 1000;
+            const required = ['Lint & Preflight'];
+            const startTime = Date.now();
+
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber,
+            });
+            const newSha = pr.head.sha;
+            core.info(`Waiting for CI on updated SHA ${newSha.substring(0, 8)}...`);
+
+            while (Date.now() - startTime < maxWait) {
+              const { data: checks } = await github.rest.checks.listForRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: newSha,
+              });
+
+              const latest = {};
+              for (const run of checks.check_runs) {
+                if (!latest[run.name] || run.id > latest[run.name].id) {
+                  latest[run.name] = run;
+                }
+              }
+
+              const allPassed = required.every(name =>
+                latest[name] && latest[name].conclusion === 'success'
+              );
+              const anyFailed = required.some(name =>
+                latest[name] && latest[name].conclusion === 'failure'
+              );
+
+              if (allPassed) {
+                core.info('CI passed on updated branch — re-adding ready-to-merge label');
+                try {
+                  await github.rest.issues.addLabels({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: prNumber,
+                    labels: ['ready-to-merge'],
+                  });
+                } catch (e) {
+                  core.warning(`Failed to re-add label: ${e.message}`);
+                }
+                return;
+              }
+
+              if (anyFailed) {
+                core.info('CI failed on updated branch — not re-labeling');
+                return;
+              }
+
+              core.info(`CI still running... waiting ${pollInterval / 1000}s`);
+              await new Promise(r => setTimeout(r, pollInterval));
+            }
+
+            core.warning('Timed out waiting for CI on updated branch');
+
+      - name: Squash-merge PR
+        if: >
+          steps.find-pr.outputs.found == 'true' &&
+          steps.ci-status.outputs.passed == 'true' &&
+          steps.up-to-date.outputs.up_to_date == 'true'
+        uses: actions/github-script@v8
+        with:
+          github-token: ${{ secrets.MERGE_TOKEN || github.token }}
+          script: |
+            const pr_number = ${{ steps.find-pr.outputs.number }};
+            const head_ref = '${{ steps.find-pr.outputs.head_ref }}';
+            const headSha = '${{ steps.find-pr.outputs.head_sha }}';
+
+            // Fetch title from API to avoid template injection
+            const { data: prData } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr_number,
+            });
+            const title = prData.title;
+
+            await github.rest.pulls.merge({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr_number,
+              merge_method: 'squash',
+              commit_title: `${title} (#${pr_number})`,
+              sha: headSha,
+            });
+
+            core.info(`Merged PR #${pr_number} via squash`);
+
+            try {
+              await github.rest.git.deleteRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: `heads/${head_ref}`,
+              });
+              core.info(`Deleted remote branch ${head_ref}`);
+            } catch (e) {
+              core.warning(`Could not delete branch ${head_ref}: ${e.message}`);
+            }

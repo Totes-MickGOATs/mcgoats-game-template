@@ -1,0 +1,9 @@
+# Unreal engine recipes — imported by root justfile (stub)
+
+# Build the project
+build:
+    @echo "Configure Unreal Build Tool path and run build"
+
+# Open project in Unreal Editor
+editor:
+    @echo "Open via Epic Games Launcher or .uproject file"

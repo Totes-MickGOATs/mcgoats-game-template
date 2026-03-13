@@ -1,0 +1,85 @@
+name: Stale Branch Cleanup
+
+# Weekly cleanup of abandoned branches and stale PRs
+on:
+  schedule:
+    - cron: '0 6 * * 1'  # Every Monday at 6 AM UTC
+  workflow_dispatch:
+
+jobs:
+  cleanup:
+    name: Clean Stale Branches & PRs
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Close stale PRs (idle >14 days, no ready-to-merge label)
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const { data: prs } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              base: 'master',
+              sort: 'updated',
+              direction: 'asc',
+            });
+
+            const now = Date.now();
+            const STALE_DAYS = 14;
+            const staleMs = STALE_DAYS * 24 * 60 * 60 * 1000;
+
+            for (const pr of prs) {
+              const hasRtm = pr.labels.some(l => l.name === 'ready-to-merge');
+              if (hasRtm) continue;  // Don't close PRs in the merge queue
+
+              const updatedAt = new Date(pr.updated_at).getTime();
+              const ageDays = Math.floor((now - updatedAt) / (24 * 60 * 60 * 1000));
+
+              if (now - updatedAt > staleMs) {
+                core.info(`Closing stale PR #${pr.number}: "${pr.title}" (idle ${ageDays} days)`);
+
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: pr.number,
+                  body: `This PR has been idle for ${ageDays} days without the \`ready-to-merge\` label. Closing as stale.\n\nReopen when ready to continue work. The branch has not been deleted.\n\n_Automated by [stale-cleanup workflow](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})._`,
+                });
+
+                await github.rest.pulls.update({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  pull_number: pr.number,
+                  state: 'closed',
+                });
+              }
+            }
+
+      - name: Delete merged remote branches (>7 days old)
+        run: |
+          git fetch origin --prune
+          CUTOFF=$(date -d '7 days ago' +%s 2>/dev/null || date -v-7d +%s)
+          DELETED=0
+
+          for BRANCH in $(git branch -r --merged origin/master | grep -v 'origin/master' | grep -v 'HEAD' | sed 's|origin/||'); do
+            # Skip protected branches
+            case "$BRANCH" in
+              master|main|release/*) continue ;;
+            esac
+
+            # Check last commit date
+            LAST_COMMIT=$(git log -1 --format='%ct' "origin/$BRANCH" 2>/dev/null || echo "0")
+            if [ "$LAST_COMMIT" -lt "$CUTOFF" ]; then
+              echo "Deleting merged branch: $BRANCH (last commit: $(date -d @$LAST_COMMIT 2>/dev/null || date -r $LAST_COMMIT))"
+              git push origin --delete "$BRANCH" 2>/dev/null || true
+              DELETED=$((DELETED + 1))
+            fi
+          done
+
+          echo "Deleted $DELETED merged branches older than 7 days."

@@ -1,0 +1,26 @@
+name: PR Guard — Strip Label on Push
+
+# When new commits are pushed to a PR branch, immediately remove the
+# ready-to-merge label so the PR must pass CI again before merging.
+
+on:
+  pull_request:
+    types: [synchronize]
+
+jobs:
+  strip-label:
+    name: Strip ready-to-merge
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      # Use MERGE_TOKEN (PAT) so label removal is visible to other workflows.
+      # GITHUB_TOKEN actions don't create workflow trigger events (GitHub limitation).
+      - name: Remove ready-to-merge label
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.MERGE_TOKEN || github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh pr edit ${{ github.event.pull_request.number }} --remove-label "ready-to-merge"
+          echo "Stripped ready-to-merge from PR #${{ github.event.pull_request.number }} (new push)"

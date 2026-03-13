@@ -1,0 +1,6 @@
+{
+  "ENGINE": "",
+  "GAME_NAME": "My Game",
+  "REQUIRED_CHECKS": ["Lint & Preflight"],
+  "MAIN_BRANCH": "master"
+}

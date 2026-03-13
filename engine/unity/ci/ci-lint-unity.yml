@@ -1,0 +1,23 @@
+name: Lint — Unity
+
+on:
+  workflow_call:
+
+jobs:
+  csharp-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for C# files
+        id: check
+        run: |
+          if find . -name "*.cs" | head -1 | grep -q .; then
+            echo "has_csharp=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_csharp=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: C# lint (stub)
+        if: steps.check.outputs.has_csharp == 'true'
+        run: echo "C# linting not yet configured. Add dotnet-format or other analyzers."

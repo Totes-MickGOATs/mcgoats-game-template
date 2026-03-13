@@ -1,0 +1,32 @@
+#!/bin/bash
+# Commit message validation: enforce conventional commit format
+# Format: type: short description
+# Types: feat, fix, refactor, test, docs, chore, ci, style, perf, build
+
+MSG_FILE="$1"
+MSG=$(head -1 "$MSG_FILE")
+
+# Skip merge commits, revert commits, and squash-merge commits
+if echo "$MSG" | grep -qE '^(Merge |Revert ")'; then
+    exit 0
+fi
+
+# Conventional commit pattern: type(optional-scope): description
+PATTERN='^(feat|fix|refactor|test|docs|chore|ci|style|perf|build)(\([a-z0-9_-]+\))?: .{3,}'
+
+if ! echo "$MSG" | grep -qE "$PATTERN"; then
+    echo ""
+    echo "ERROR: Commit message does not follow conventional commit format."
+    echo ""
+    echo "  Expected: type: short description"
+    echo "  Got:      $MSG"
+    echo ""
+    echo "  Valid types: feat, fix, refactor, test, docs, chore, ci, style, perf, build"
+    echo "  Examples:"
+    echo "    feat: add surface friction zones"
+    echo "    fix: correct wheel radius calculation"
+    echo "    refactor(editor): extract undo helpers"
+    echo "    test: add vehicle spawn tests"
+    echo ""
+    exit 1
+fi

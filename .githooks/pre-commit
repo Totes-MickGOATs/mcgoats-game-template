@@ -1,0 +1,43 @@
+#!/bin/bash
+# Pre-commit hook: master guard + lint staged files
+# Install: git config core.hooksPath .githooks
+
+# ── Master branch guard ──────────────────────────────────────────────────────
+CURRENT_BRANCH=$(git branch --show-current 2>/dev/null)
+if [ "$CURRENT_BRANCH" = "master" ] && [ -z "$ALLOW_MASTER_COMMIT" ]; then
+    echo "BLOCKED: Direct commits to master are not allowed."
+    echo ""
+    echo "All code changes must go through feature branches + PRs."
+    echo ""
+    echo "Quick start:"
+    echo "  just worktree-create <task-name>"
+    echo "  # ... develop on feat/<task> branch ..."
+    echo "  git push -u origin feat/<task>"
+    echo "  gh pr create --base master"
+    echo ""
+    echo "Full workflow guide: .agents/skills/branch-workflow/SKILL.md"
+    echo ""
+    echo "Bypass (release/hotfix only): ALLOW_MASTER_COMMIT=1 git commit ..."
+    exit 1
+fi
+
+# ── Staged file detection ────────────────────────────────────────────────────
+STAGED_PY=$(git diff --cached --name-only --diff-filter=ACM -- '*.py')
+
+# Lint staged Python files
+if [ -n "$STAGED_PY" ] && uv run ruff --version &>/dev/null; then
+    echo "Linting staged Python files..."
+    if ! echo "$STAGED_PY" | xargs uv run ruff check 2>&1; then
+        echo ""
+        echo "Python lint errors found. Fix with: uv run ruff check --fix"
+        exit 1
+    fi
+fi
+
+# ── Conventional commit message format check (via commit-msg hook) ─────────
+
+# ── Engine-specific checks ────────────────────────────────────────────────────
+ENGINE_HOOK=".githooks/pre-commit-engine"
+if [ -f "$ENGINE_HOOK" ]; then
+    source "$ENGINE_HOOK"
+fi

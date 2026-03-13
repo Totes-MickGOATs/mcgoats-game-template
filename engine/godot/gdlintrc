@@ -1,0 +1,7 @@
+[format]
+max-line-length=120
+
+[rules]
+# Relaxed rules for game development
+disable=max-public-methods
+disable=max-returns

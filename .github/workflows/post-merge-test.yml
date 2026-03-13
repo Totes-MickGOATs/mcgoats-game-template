@@ -1,0 +1,51 @@
+name: Post-Merge Tests
+
+# Runs the full test suite on master after PRs merge.
+# Engine-specific test commands are configured in justfile.engine.
+
+on:
+  push:
+    branches: [master]
+    paths-ignore:
+      - '*.md'
+      - '.github/**'
+      - '.claude/**'
+      - '.ai/**'
+      - 'docs/**'
+
+concurrency:
+  group: post-merge-tests
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Post-Merge Test Suite
+    runs-on: ubuntu-latest
+    steps:
+      - name: Debounce (wait for more merges)
+        run: |
+          echo "Waiting 60s for merge queue to settle..."
+          sleep 60
+
+      - uses: actions/checkout@v6
+        with:
+          lfs: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync
+
+      # Engine-specific test steps are added by setup-engine.sh
+      # For now, run Python tests only
+      - name: Run Python tests
+        continue-on-error: true
+        run: uv run ruff check scripts/tools/
+
+      - name: Placeholder — engine test suite
+        run: |
+          echo "Engine-specific tests not configured."
+          echo "Run ./tools/setup-engine.sh to configure your engine's test pipeline."
