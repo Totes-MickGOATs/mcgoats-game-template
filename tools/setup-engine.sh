@@ -174,44 +174,54 @@ copy_engine_files() {
 }
 
 # =============================================================================
-# Step b) Godot extras: lint configs, CLAUDE.md templates, skills
+# Step b) Engine extras: lint configs, CLAUDE.md templates, skills
 # =============================================================================
-copy_godot_extras() {
-    header "Godot-Specific Extras"
+copy_engine_extras() {
+    header "Engine-Specific Extras"
 
-    # --- gdlintrc, gdformatrc → root ---
-    copy_if_exists "${ENGINE_DIR}/gdlintrc" "${PROJECT_ROOT}/gdlintrc"
-    copy_if_exists "${ENGINE_DIR}/gdformatrc" "${PROJECT_ROOT}/gdformatrc"
+    # --- Godot-only: gdlintrc, gdformatrc → root ---
+    if [[ "$ENGINE" == "godot" ]]; then
+        copy_if_exists "${ENGINE_DIR}/gdlintrc" "${PROJECT_ROOT}/gdlintrc"
+        copy_if_exists "${ENGINE_DIR}/gdformatrc" "${PROJECT_ROOT}/gdformatrc"
+    fi
 
-    # --- claude-md/ templates (e.g. scripts-CLAUDE.md → scripts/CLAUDE.md) ---
+    # --- claude-md/ templates (e.g. assets-scripts-CLAUDE.md → Assets/Scripts/CLAUDE.md) ---
     if [[ -d "${ENGINE_DIR}/claude-md" ]]; then
         for template in "${ENGINE_DIR}/claude-md"/*; do
             [[ -f "$template" ]] || continue
             local basename_tpl
             basename_tpl="$(basename "$template")"
-            # Extract target dir: "scripts-CLAUDE.md" → "scripts"
+            # Skip the directory's own CLAUDE.md
+            [[ "$basename_tpl" == "CLAUDE.md" ]] && continue
+            # Extract target dir: "assets-scripts-CLAUDE.md" → "assets/scripts" (convert - to /)
             local dir_name="${basename_tpl%-CLAUDE.md}"
+            # Convert kebab-case path segments to proper case based on engine
+            case "$ENGINE" in
+                unity)
+                    # Unity: Assets/Scripts, Assets/Scenes, etc.
+                    dir_name=$(echo "$dir_name" | sed 's/-/\//g' | sed 's/\b\(.\)/\u\1/g' | sed 's/^a/A/')
+                    ;;
+                *)
+                    dir_name=$(echo "$dir_name" | sed 's/-/\//g')
+                    ;;
+            esac
             local target_dir="${PROJECT_ROOT}/${dir_name}"
-            if [[ -d "$target_dir" ]]; then
-                cp "$template" "${target_dir}/CLAUDE.md"
-                success "Copied CLAUDE.md template to ${dir_name}/"
-            else
-                mkdir -p "$target_dir"
-                cp "$template" "${target_dir}/CLAUDE.md"
-                success "Created ${dir_name}/ with CLAUDE.md template"
-            fi
+            mkdir -p "$target_dir"
+            cp "$template" "${target_dir}/CLAUDE.md"
+            success "Copied CLAUDE.md template to ${dir_name}/"
         done
     fi
 
     # --- skills/ → .agents/skills/ ---
     if [[ -d "${ENGINE_DIR}/skills" ]]; then
         mkdir -p "${PROJECT_ROOT}/.agents/skills"
-        # Only copy if there are actual entries
         if compgen -G "${ENGINE_DIR}/skills/*" > /dev/null 2>&1; then
             cp -r "${ENGINE_DIR}/skills/"* "${PROJECT_ROOT}/.agents/skills/"
-            success "Copied engine skills to .agents/skills/"
+            local skill_count
+            skill_count=$(find "${ENGINE_DIR}/skills" -name "SKILL.md" | wc -l)
+            success "Copied ${skill_count} engine skills to .agents/skills/"
         else
-            info "No skills to copy (engine/godot/skills/ is empty)"
+            info "No skills to copy (engine/${ENGINE}/skills/ is empty)"
         fi
     fi
 
@@ -390,9 +400,10 @@ print_summary() {
     echo ""
     echo -e "${BOLD}What was done:${NC}"
     echo "  - Copied .mcp.json, justfile.engine, hooks, commands, and CI workflows"
+    echo "  - Copied CLAUDE.md templates and skills to .agents/skills/"
     case "$ENGINE" in
         godot)
-            echo "  - Copied gdlintrc, gdformatrc, CLAUDE.md templates, and skills"
+            echo "  - Copied gdlintrc, gdformatrc"
             ;;
         unity)
             echo "  - Created Assets/, ProjectSettings/, Packages/"
@@ -434,7 +445,7 @@ print_summary() {
 # Main execution — run all steps in order
 # =============================================================================
 copy_engine_files
-[[ "$ENGINE" == "godot" ]] && copy_godot_extras
+copy_engine_extras
 append_gitignore_entries
 update_template_config
 update_settings_json

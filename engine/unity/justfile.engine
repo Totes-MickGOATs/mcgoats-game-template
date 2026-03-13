@@ -1,10 +1,50 @@
 # Unity engine recipes — imported by root justfile
 
-# Run tests via Unity Test Runner CLI
-test:
-    @echo "Run tests via Unity Editor: Window > General > Test Runner"
-    @echo "CLI: Unity -batchmode -runTests -testPlatform EditMode -projectPath ."
+# Path to Unity Editor (user should set UNITY_PATH env var or update this)
+unity_path := env("UNITY_PATH", "Unity")
 
-# Open project in Unity
+# Run EditMode tests via CLI
+test:
+    {{unity_path}} -batchmode -nographics -runTests -testPlatform EditMode -projectPath . -testResults test-results/editmode.xml
+    @echo "Results: test-results/editmode.xml"
+
+# Run PlayMode tests via CLI
+test-play:
+    {{unity_path}} -batchmode -nographics -runTests -testPlatform PlayMode -projectPath . -testResults test-results/playmode.xml
+    @echo "Results: test-results/playmode.xml"
+
+# Run a specific test by name
+test-fast filter:
+    {{unity_path}} -batchmode -nographics -runTests -testPlatform EditMode -projectPath . -testFilter "{{filter}}" -testResults test-results/editmode.xml
+
+# Open project in Unity Editor
 editor:
-    @echo "Open Unity Hub and select this project"
+    {{unity_path}} -projectPath .
+
+# Build standalone (Windows)
+build-win:
+    {{unity_path}} -batchmode -nographics -projectPath . -buildWindows64Player Builds/Windows/Game.exe -quit
+
+# Build standalone (Linux)
+build-linux:
+    {{unity_path}} -batchmode -nographics -projectPath . -buildLinux64Player Builds/Linux/Game -quit
+
+# Check for compilation errors (headless)
+compile-check:
+    {{unity_path}} -batchmode -nographics -projectPath . -quit -logFile - 2>&1 | grep -E "(error|Error|ERROR)" || echo "No compilation errors"
+
+# Generate .csproj files for IDE
+generate-project-files:
+    {{unity_path}} -batchmode -nographics -projectPath . -executeMethod UnityEditor.SyncVS.SyncSolution -quit
+
+# Clean Library and Temp
+clean:
+    rm -rf Library/ Temp/ Logs/ obj/
+
+# Format C# code with dotnet format
+format:
+    dotnet format *.sln --verbosity normal
+
+# Lint C# code (check only, no changes)
+lint:
+    dotnet format *.sln --verify-no-changes --verbosity normal
