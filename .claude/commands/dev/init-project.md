@@ -46,7 +46,7 @@ Verify it completed successfully by checking:
 Guide the user to set up branch protection on their default branch:
 
 ```bash
-gh api repos/{owner}/{repo}/branches/master/protection \
+gh api repos/{owner}/{repo}/branches/main/protection \
   --method PUT \
   --input - <<'EOF'
 {
@@ -63,7 +63,7 @@ gh api repos/{owner}/{repo}/branches/master/protection \
 EOF
 ```
 
-**Important:** Tell the user this ensures no direct pushes to master. All changes go through PRs.
+**Important:** Tell the user this ensures no direct pushes to main. All changes go through PRs.
 
 ### MERGE_TOKEN Secret
 This is CRITICAL for the auto-merge queue:
@@ -106,12 +106,12 @@ git config core.hooksPath
 # Should output: .githooks
 ```
 
-Test the master protection hook:
+Test the main branch protection hook:
 ```bash
-# This SHOULD fail with "Direct commit to master blocked"
+# This SHOULD fail with "Direct commit to main blocked"
 echo "test" > /tmp/test-hook.txt
 git add /tmp/test-hook.txt 2>/dev/null || true
-git commit -m "test: hook check" 2>&1 || echo "Hook correctly blocked commit on master"
+git commit -m "test: hook check" 2>&1 || echo "Hook correctly blocked commit on main"
 git reset HEAD /tmp/test-hook.txt 2>/dev/null || true
 ```
 
@@ -154,7 +154,7 @@ git commit -m "test: verify template setup"
 git push -u origin feat/test-setup
 
 # Open a PR
-gh pr create --base master --title "test: verify template setup" --body "Testing template workflow"
+gh pr create --base main --title "test: verify template setup" --body "Testing template workflow"
 
 # Watch CI — should pass
 just watch-ci
@@ -182,7 +182,7 @@ Common issues and solutions:
 - **Auto-merge stuck** — Verify MERGE_TOKEN secret exists with correct scopes (`repo` + `workflow`)
 - **`just` command not found** — Ensure it's in PATH, try opening a new terminal
 - **`uv` command not found** — Install: `curl -LsSf https://astral.sh/uv/install.sh | sh` or `winget install astral-sh.uv`
-- **Pre-commit blocks on master** — This is intentional! Use `just worktree-create <task>` to work on a feature branch
+- **Pre-commit blocks on main** — This is intentional! Use `just worktree-create <task>` to work on a feature branch
 - **git hooks not running** — Run `git config core.hooksPath .githooks` to point git at the hooks directory
 - **`jq` not found during engine setup** — Install jq: `winget install jqlang.jq` or `apt install jq`. The script has a sed fallback but jq is preferred.
 - **Engine setup already ran** — If the `engine/` directory is gone, the script was already run. Check `template-config.json` for the configured engine.

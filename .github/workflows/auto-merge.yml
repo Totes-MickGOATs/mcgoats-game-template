@@ -1,7 +1,7 @@
 name: Auto-Merge Queue
 
-# Event-driven merge queue: serializes PR merges to master so each PR tests
-# against the actual current master before merging. Replaces polling with
+# Event-driven merge queue: serializes PR merges to main so each PR tests
+# against the actual current main before merging. Replaces polling with
 # event triggers for faster, more efficient operation.
 
 on:
@@ -10,7 +10,7 @@ on:
     types: [labeled]
   # After a merge completes, process next PR in queue
   push:
-    branches: [master]
+    branches: [main]
   # Manual trigger for debugging
   workflow_dispatch:
 
@@ -48,7 +48,7 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               state: 'open',
-              base: 'master',
+              base: 'main',
               per_page: 100,
             });
 
@@ -205,26 +205,26 @@ jobs:
 
             core.info(`Removed ready-to-merge label and commented on PR #${pr_number} (failure ${failureCount}/${MAX_FAILURES})`);
 
-      - name: Check if PR is up-to-date with master
+      - name: Check if PR is up-to-date with main
         if: >
           steps.find-pr.outputs.found == 'true' &&
           steps.ci-status.outputs.failed != 'true'
         id: up-to-date
         run: |
-          git fetch origin master
+          git fetch origin main
           HEAD_SHA="${{ steps.find-pr.outputs.head_sha }}"
-          MASTER_SHA=$(git rev-parse origin/master)
-          MERGE_BASE=$(git merge-base "$HEAD_SHA" "$MASTER_SHA")
+          MAIN_SHA=$(git rev-parse origin/main)
+          MERGE_BASE=$(git merge-base "$HEAD_SHA" "$MAIN_SHA")
 
-          if [ "$MERGE_BASE" = "$MASTER_SHA" ]; then
+          if [ "$MERGE_BASE" = "$MAIN_SHA" ]; then
             echo "up_to_date=true" >> "$GITHUB_OUTPUT"
-            echo "PR is up-to-date with master"
+            echo "PR is up-to-date with main"
           else
             echo "up_to_date=false" >> "$GITHUB_OUTPUT"
-            echo "PR is behind master (merge-base: $MERGE_BASE, master: $MASTER_SHA)"
+            echo "PR is behind main (merge-base: $MERGE_BASE, main: $MAIN_SHA)"
           fi
 
-      - name: Rebase PR behind master — update branch
+      - name: Rebase PR behind main — update branch
         if: >
           steps.find-pr.outputs.found == 'true' &&
           steps.ci-status.outputs.passed == 'true' &&
@@ -251,7 +251,7 @@ jobs:
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: pr_number,
-                body: `## Auto-merge blocked: merge conflict\n\nCould not update branch with master: ${e.message}\n\nResolve conflicts manually and re-add the \`ready-to-merge\` label.\n\n_This comment was posted by the [auto-merge workflow](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})._`,
+                body: `## Auto-merge blocked: merge conflict\n\nCould not update branch with main: ${e.message}\n\nResolve conflicts manually and re-add the \`ready-to-merge\` label.\n\n_This comment was posted by the [auto-merge workflow](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})._`,
               });
 
               try {
@@ -266,7 +266,7 @@ jobs:
               }
             }
 
-      - name: Update stale branch — CI missing/pending and behind master
+      - name: Update stale branch — CI missing/pending and behind main
         if: >
           steps.find-pr.outputs.found == 'true' &&
           steps.ci-status.outputs.pending == 'true' &&

@@ -22,11 +22,11 @@ else
     echo "Working tree: clean"
 fi
 
-# Recent commits on this branch (not on master)
-if [ "$BRANCH" != "master" ] && [ "$BRANCH" != "unknown" ]; then
-    COMMITS=$(git log --oneline origin/master..HEAD 2>/dev/null | head -10)
+# Recent commits on this branch (not on main)
+if [ "$BRANCH" != "main" ] && [ "$BRANCH" != "unknown" ]; then
+    COMMITS=$(git log --oneline origin/main..HEAD 2>/dev/null | head -10)
     if [ -n "$COMMITS" ]; then
-        COMMIT_COUNT=$(git rev-list --count origin/master..HEAD 2>/dev/null || echo "?")
+        COMMIT_COUNT=$(git rev-list --count origin/main..HEAD 2>/dev/null || echo "?")
         echo ""
         echo "Commits on $BRANCH ($COMMIT_COUNT total):"
         echo "$COMMITS" | sed 's/^/  /'
@@ -35,7 +35,7 @@ if [ "$BRANCH" != "master" ] && [ "$BRANCH" != "unknown" ]; then
 fi
 
 # PR status
-if command -v gh &>/dev/null && [ "$BRANCH" != "master" ]; then
+if command -v gh &>/dev/null && [ "$BRANCH" != "main" ]; then
     PR_JSON=$(gh pr list --head "$BRANCH" --state all --json number,state,title --limit 1 2>/dev/null || echo "[]")
     PR_NUM=$(echo "$PR_JSON" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d[0]['number'] if d else '')" 2>/dev/null || echo "")
     if [ -n "$PR_NUM" ]; then

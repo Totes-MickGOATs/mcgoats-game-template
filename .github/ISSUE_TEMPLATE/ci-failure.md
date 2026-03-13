@@ -1,6 +1,6 @@
 ---
 name: CI Failure
-about: Automatically created when CI fails on master
+about: Automatically created when CI fails on main
 labels: ci-failure, needs-agent-fix
 ---
 

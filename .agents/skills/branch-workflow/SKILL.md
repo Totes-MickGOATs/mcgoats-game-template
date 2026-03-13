@@ -4,7 +4,7 @@ How to correctly develop, commit, push, and merge code in this project. **Read t
 
 ## The Golden Rule
 
-**Never commit or push directly to master.** Local hooks and GitHub branch protection will block you. All work goes through feature branches and pull requests.
+**Never commit or push directly to main.** Local hooks and GitHub branch protection will block you. All work goes through feature branches and pull requests.
 
 ## Step-by-Step: Feature or Fix
 
@@ -12,15 +12,15 @@ How to correctly develop, commit, push, and merge code in this project. **Read t
 
 ```bash
 just worktree-create <task-name>
-# Fetches origin/master, fast-forwards local master, then creates
-# feat/<task-name> branch from the latest remote master.
+# Fetches origin/main, fast-forwards local main, then creates
+# feat/<task-name> branch from the latest remote main.
 # Worktree lives at ../<project>-<task-name>/
 cd ../<project>-<task-name>
 ```
 
-This **always pulls the latest master from remote** before branching, so your feature branch starts from the true current state of master — not a stale local copy.
+This **always pulls the latest main from remote** before branching, so your feature branch starts from the true current state of main — not a stale local copy.
 
-If you're a Claude Code agent launched with `isolation: "worktree"`, the worktree is already created for you — skip this step. Note that Claude Code's built-in worktree uses its own branching; if you need to guarantee you're on latest master, run `git fetch origin master && git rebase origin/master` inside the worktree.
+If you're a Claude Code agent launched with `isolation: "worktree"`, the worktree is already created for you — skip this step. Note that Claude Code's built-in worktree uses its own branching; if you need to guarantee you're on latest main, run `git fetch origin main && git rebase origin/main` inside the worktree.
 
 ### 2. Develop on the Feature Branch
 
@@ -32,7 +32,7 @@ If you're a Claude Code agent launched with `isolation: "worktree"`, the worktre
 
 ```bash
 git push -u origin feat/<task-name>
-gh pr create --base master --title "feat: description" --body "..."
+gh pr create --base main --title "feat: description" --body "..."
 ```
 
 Or use the one-liner:
@@ -51,7 +51,7 @@ If CI fails, fix the issue in the feature branch, push again. CI re-runs automat
 ### 5. Auto-Merge (Event-Driven)
 
 CI automatically adds the `ready-to-merge` label when checks pass. The **auto-merge workflow** (`auto-merge.yml`) triggers immediately on label addition:
-- If the PR is behind master, it rebases automatically, CI re-runs, label re-added on pass, merge re-triggered
+- If the PR is behind main, it rebases automatically, CI re-runs, label re-added on pass, merge re-triggered
 - If CI is green and up-to-date, it squash-merges and deletes the remote branch
 - If CI failed, it removes the label and comments on the PR
 
@@ -68,7 +68,7 @@ gh pr edit <number> --add-label "ready-to-merge"
 ```bash
 just worktree-cleanup <task-name>   # Remove worktree + local/remote branch
 # OR
-just worktree-sync                  # Batch: pull master, delete merged branches, prune
+just worktree-sync                  # Batch: pull main, delete merged branches, prune
 ```
 
 ## Definition of Done
@@ -111,13 +111,13 @@ When CI fails or the merge queue rejects your PR:
 
 ## Enforcement Layers
 
-This project has **three layers** preventing direct master commits:
+This project has **three layers** preventing direct main commits:
 
 | Layer | Mechanism | Bypassable? |
 |-------|-----------|-------------|
-| **Claude Code PreToolUse hook** | Blocks `git commit` on master and `--no-verify` usage | No — runs before the command, cannot be skipped |
+| **Claude Code PreToolUse hook** | Blocks `git commit` on main and `--no-verify` usage | No — runs before the command, cannot be skipped |
 | **Git pre-commit hook** | `.githooks/pre-commit` — checks branch name | Yes — `--no-verify` skips it (but layer 1 blocks that) |
-| **GitHub branch protection** | Server-side — requires PR + CI checks | No — push to master is rejected server-side |
+| **GitHub branch protection** | Server-side — requires PR + CI checks | No — push to main is rejected server-side |
 
 The PreToolUse hook is the primary guard for agents. Even if an agent tries `--no-verify`, the hook blocks it before git ever runs.
 
@@ -127,56 +127,56 @@ The PreToolUse hook is the primary guard for agents. Even if an agent tries `--n
 
 When Claude Code spawns a subagent with `isolation: "worktree"`, the subagent gets its own worktree and feature branch automatically. The subagent is responsible for the full lifecycle:
 
-1. **Verify branch**: `git branch --show-current` — should show a feature branch, not `master`
+1. **Verify branch**: `git branch --show-current` — should show a feature branch, not `main`
 2. **Develop**: Write code, run tests, commit
 3. **Push**: `git push -u origin <branch>`
-4. **Create PR**: `gh pr create --base master`
+4. **Create PR**: `gh pr create --base main`
 5. **Monitor CI**: `gh run list --branch <branch>`
 6. **Enable auto-merge**: `gh pr merge --auto --squash` or ensure `ready-to-merge` label is applied
 7. **Do not wait for merge** — once CI is green and auto-merge is enabled, the task is done
 
 ### Main Agent Responsibilities
 
-The main agent (on master) should:
+The main agent (on main) should:
 
 1. **Never edit files directly** — dispatch subagents for code changes
-2. **Pull latest master** before dispatching: `git fetch origin && git pull --ff-only origin master`
+2. **Pull latest main** before dispatching: `git fetch origin && git pull --ff-only origin main`
 3. **Verify subagent work** — check the PR diff, not just CI status
 4. **Cleanup after merge**: `just worktree-cleanup <task>`
 
 ### Hard Rules for All Agents
 
-- **NEVER** commit on the `master` branch
+- **NEVER** commit on the `main` branch
 - **NEVER** use `--no-verify` on git commit
 - **NEVER** leave a branch unmerged or CI failing
 - **ALWAYS** use `isolation: "worktree"` when spawning subagents that write code
 
 ## Gotchas & Common Mistakes
 
-### "BLOCKED: Cannot commit on master branch"
+### "BLOCKED: Cannot commit on main branch"
 
-The Claude Code PreToolUse hook detected a `git commit` while on the `master` branch. Switch to a feature branch.
+The Claude Code PreToolUse hook detected a `git commit` while on the `main` branch. Switch to a feature branch.
 
 ### "BLOCKED: --no-verify is not allowed"
 
 Never use `--no-verify`. It's blocked by the PreToolUse hook. Fix the root cause (lint errors, parse errors, etc.) instead of bypassing it.
 
-### "ERROR: Direct commits to master are blocked"
+### "ERROR: Direct commits to main are blocked"
 
-You're on the `master` branch. You need to be on a feature branch.
+You're on the `main` branch. You need to be on a feature branch.
 
 ```bash
 # If you haven't started work yet:
 just worktree-create my-task
 
-# If you already made changes on master (uncommitted):
+# If you already made changes on main (uncommitted):
 git stash
 just worktree-create my-task
 cd ../<project>-my-task
 git stash pop
 ```
 
-### "ERROR: Direct push to master is blocked"
+### "ERROR: Direct push to main is blocked"
 
 Push your feature branch instead:
 
@@ -184,28 +184,28 @@ Push your feature branch instead:
 git push -u origin feat/<task-name>
 ```
 
-### Branching From Stale Master
+### Branching From Stale Main
 
-If you manually create a branch with `git checkout -b` instead of `just worktree-create`, your branch may be based on a stale local master. Always fetch first:
+If you manually create a branch with `git checkout -b` instead of `just worktree-create`, your branch may be based on a stale local main. Always fetch first:
 
 ```bash
-git fetch origin master
-git checkout -b feat/my-task origin/master
+git fetch origin main
+git checkout -b feat/my-task origin/main
 ```
 
 `just worktree-create` handles this automatically.
 
 ### CI Fails After Rebase
 
-The merge queue auto-rebases PRs that are behind master. If CI fails after rebase, the `ready-to-merge` label is removed and a comment is posted. Fix the issue, push, and re-add the label.
+The merge queue auto-rebases PRs that are behind main. If CI fails after rebase, the `ready-to-merge` label is removed and a comment is posted. Fix the issue, push, and re-add the label.
 
 ### Merge Conflicts
 
 If the merge queue can't rebase your PR (conflict), it removes the label and comments. Resolve manually:
 
 ```bash
-git fetch origin master
-git rebase origin/master
+git fetch origin main
+git rebase origin/main
 # Fix conflicts
 git push --force-with-lease
 gh pr edit <number> --add-label "ready-to-merge"
@@ -213,26 +213,26 @@ gh pr edit <number> --add-label "ready-to-merge"
 
 ### Parallel PR Rebase Cascade
 
-When multiple PRs are in flight and one merges, the remaining PRs are now behind master. The merge queue handles this by auto-rebasing, but each rebase triggers a new CI run. With N parallel PRs, expect O(N^2) CI runs total.
+When multiple PRs are in flight and one merges, the remaining PRs are now behind main. The merge queue handles this by auto-rebasing, but each rebase triggers a new CI run. With N parallel PRs, expect O(N^2) CI runs total.
 
 **Mitigation strategies:**
 - Limit parallel PRs to 2-3 when possible
 - Sequence PRs that touch the same files (especially singletons like config files or CI workflows)
-- Pre-rebase before pushing: `git fetch origin && git rebase origin/master`
+- Pre-rebase before pushing: `git fetch origin && git rebase origin/main`
 
 ### Dirty Worktrees
 
 If `just worktree-list` shows worktrees for merged PRs, clean them up:
 
 ```bash
-just worktree-sync           # Batch cleanup: pull master, delete merged branches, prune
+just worktree-sync           # Batch cleanup: pull main, delete merged branches, prune
 just worktree-cleanup <task> # Single cleanup
 just worktree-cleanup-all    # Nuclear: prune all orphaned worktrees + gone branches
 ```
 
 ### Multiple PRs in Flight
 
-The merge queue serializes merges — only one PR merges at a time. This prevents "it passed CI but breaks master" scenarios. PRs are processed in FIFO order by when the `ready-to-merge` label was applied (not creation date).
+The merge queue serializes merges — only one PR merges at a time. This prevents "it passed CI but breaks main" scenarios. PRs are processed in FIFO order by when the `ready-to-merge` label was applied (not creation date).
 
 ### Agent Worktrees vs Human Worktrees
 
@@ -271,14 +271,14 @@ If rebase conflicts are too complex:
 ```bash
 git rebase --abort
 git reset --hard origin/feat/<task>   # Reset to remote state
-# Create a new branch from fresh master and cherry-pick your commits
-git fetch origin master
-git checkout -b feat/<task>-v2 origin/master
+# Create a new branch from fresh main and cherry-pick your commits
+git fetch origin main
+git checkout -b feat/<task>-v2 origin/main
 git cherry-pick <commit1> <commit2> ...
 git push -u origin feat/<task>-v2
 # Close the old PR and create a new one
 gh pr close <old-number>
-gh pr create --base master
+gh pr create --base main
 ```
 
 ### CI Outage (GitHub Actions Down)
@@ -292,11 +292,11 @@ If GitHub Actions is experiencing an outage:
 
 ### Release / Hotfix Bypass
 
-For releases and hotfixes that must commit directly to master:
+For releases and hotfixes that must commit directly to main:
 
 ```bash
 ALLOW_MASTER_COMMIT=1 git commit -m "chore: release 1.0.0"
-ALLOW_MASTER_PUSH=1 git push origin master
+ALLOW_MASTER_PUSH=1 git push origin main
 ```
 
 This is for repo admins only. The GitHub branch protection must allow admin bypass (enforce_admins off).
@@ -305,11 +305,11 @@ This is for repo admins only. The GitHub branch protection must allow admin bypa
 
 | Recipe | Purpose |
 |--------|---------|
-| `just worktree-create <task>` | Create `feat/<task>` branch + worktree from `origin/master` |
+| `just worktree-create <task>` | Create `feat/<task>` branch + worktree from `origin/main` |
 | `just worktree-cleanup <task>` | Remove worktree + delete local & remote branch |
 | `just worktree-cleanup-all` | Prune orphaned worktrees + delete branches with gone remotes |
-| `just worktree-list` | Show all worktrees with branch name, PR status, commits-behind-master |
-| `just worktree-sync` | Pull master, delete merged branches, prune worktrees |
+| `just worktree-list` | Show all worktrees with branch name, PR status, commits-behind-main |
+| `just worktree-sync` | Pull main, delete merged branches, prune worktrees |
 
 ## CI Command Reference
 
@@ -327,8 +327,8 @@ This is for repo admins only. The GitHub branch protection must allow admin bypa
 
 | File | Role |
 |------|------|
-| `.githooks/pre-commit` | Master commit guard (+ lint, format checks) |
-| `.githooks/pre-push` | Master push guard |
+| `.githooks/pre-commit` | Main branch commit guard (+ lint, format checks) |
+| `.githooks/pre-push` | Main branch push guard |
 | `.github/workflows/auto-merge.yml` | Event-driven merge queue — serialized squash-merge |
 | `.github/workflows/ci.yml` | CI pipeline — lint + tests + auto-label |
 | `.github/workflows/pr-guard.yml` | Strip ready-to-merge label on new push |

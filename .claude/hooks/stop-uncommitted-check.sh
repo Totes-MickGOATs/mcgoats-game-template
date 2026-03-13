@@ -5,7 +5,7 @@
 cd "$CLAUDE_PROJECT_DIR" || exit 0
 
 BRANCH=$(git branch --show-current 2>/dev/null)
-[[ "$BRANCH" == "master" ]] && exit 0
+[[ "$BRANCH" == "main" ]] && exit 0
 [[ -z "$BRANCH" ]] && exit 0
 
 # Only warn if there are uncommitted code files (ignore untracked noise)

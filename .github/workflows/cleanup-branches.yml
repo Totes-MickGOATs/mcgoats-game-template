@@ -24,8 +24,8 @@ jobs:
           echo "=== Stale Branch Cleanup ==="
           DELETED=0
 
-          # Get all remote branches except master, release/*, and dependabot/*
-          BRANCHES=$(git branch -r --merged origin/master | grep -vE 'origin/(master|release/|HEAD|dependabot/)' | sed 's|origin/||' | tr -d ' ')
+          # Get all remote branches except main, release/*, and dependabot/*
+          BRANCHES=$(git branch -r --merged origin/main | grep -vE 'origin/(main|release/|HEAD|dependabot/)' | sed 's|origin/||' | tr -d ' ')
 
           for BRANCH in $BRANCHES; do
             [ -z "$BRANCH" ] && continue

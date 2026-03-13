@@ -26,7 +26,7 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               state: 'open',
-              base: 'master',
+              base: 'main',
               sort: 'updated',
               direction: 'asc',
             });
@@ -67,7 +67,7 @@ jobs:
           CUTOFF=$(date -d '7 days ago' +%s 2>/dev/null || date -v-7d +%s)
           DELETED=0
 
-          for BRANCH in $(git branch -r --merged origin/master | grep -v 'origin/master' | grep -v 'HEAD' | sed 's|origin/||'); do
+          for BRANCH in $(git branch -r --merged origin/main | grep -v 'origin/main' | grep -v 'HEAD' | sed 's|origin/||'); do
             # Skip protected branches
             case "$BRANCH" in
               master|main|release/*) continue ;;

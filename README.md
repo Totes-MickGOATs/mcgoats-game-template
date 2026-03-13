@@ -6,7 +6,7 @@ AI-powered game development template with battle-tested CI/CD, auto-merge queues
 
 ## What You Get
 
-- **3-layer master protection** — Claude Code PreToolUse hook + git pre-commit hook + GitHub branch protection
+- **3-layer main branch protection** — Claude Code PreToolUse hook + git pre-commit hook + GitHub branch protection
 - **Auto-merge queue** — FIFO squash-merge triggered by `ready-to-merge` label
 - **CI pipeline** — Common lint + engine-specific checks as reusable workflows
 - **Post-merge safety net** — Full test suite runs after merge, auto-creates issues on failure
@@ -50,7 +50,7 @@ This copies engine-specific configs, CI workflows, hooks, skills, and lint confi
 
 ### 3. Configure GitHub
 
-1. **Branch protection** on `master`:
+1. **Branch protection** on `main`:
    - Require PR before merging
    - Require status checks: `Lint & Preflight` (add engine-specific checks too)
    - No force push, no deletion
@@ -75,7 +75,7 @@ git remote add template https://github.com/Totes-MickGOATs/mcgoats-game-template
 
 # Pull updates
 git fetch template
-git merge template/master --no-ff
+git merge template/main --no-ff
 
 # Check for drift
 just check-template-sync
@@ -87,7 +87,7 @@ just check-template-sync
 ├── CLAUDE.md                     # AI workflow rules (engine-agnostic)
 ├── justfile                      # Task runner (imports justfile.engine)
 ├── .github/workflows/            # CI: auto-merge, lint, post-merge tests
-├── .githooks/                    # Pre-commit (master guard), pre-push, commit-msg
+├── .githooks/                    # Pre-commit (main branch guard), pre-push, commit-msg
 ├── .claude/                      # Claude Code hooks, commands, settings
 ├── .agents/skills/               # AI agent skills library
 ├── .ai/knowledge/                # Architecture docs, plans, status

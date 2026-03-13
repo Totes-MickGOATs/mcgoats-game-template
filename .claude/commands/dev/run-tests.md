@@ -6,7 +6,7 @@ description: Run tests for the current changes
 
 1. Identify changed files:
    ```bash
-   git diff origin/master...HEAD --name-only
+   git diff origin/main...HEAD --name-only
    ```
 
 2. Find corresponding test files for each changed source file.

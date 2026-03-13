@@ -1,11 +1,11 @@
 name: Post-Merge Tests
 
-# Runs the full test suite on master after PRs merge.
+# Runs the full test suite on main after PRs merge.
 # Engine-specific test commands are configured in justfile.engine.
 
 on:
   push:
-    branches: [master]
+    branches: [main]
     paths-ignore:
       - '*.md'
       - '.github/**'

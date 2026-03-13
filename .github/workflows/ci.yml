@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [master, 'release/**']
+    branches: [main, 'release/**']
   pull_request:
-    branches: [master, 'release/**']
+    branches: [main, 'release/**']
   schedule:
     - cron: '0 4 * * *'
   workflow_dispatch:
@@ -114,7 +114,7 @@ jobs:
             const thisFilenames = new Set(thisFiles.map(f => f.filename));
 
             const { data: openPrs } = await github.rest.pulls.list({
-              owner, repo, state: 'open', base: 'master', per_page: 50,
+              owner, repo, state: 'open', base: 'main', per_page: 50,
             });
             const otherPrs = openPrs.filter(pr => pr.number !== prNumber);
 

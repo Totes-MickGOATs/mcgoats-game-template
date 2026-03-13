@@ -10,7 +10,7 @@ Review the current branch's changes against the base branch.
 
 1. **Diff overview:**
    ```bash
-   git diff origin/master...HEAD --stat
+   git diff origin/main...HEAD --stat
    ```
 
 2. **For each changed file, verify:**

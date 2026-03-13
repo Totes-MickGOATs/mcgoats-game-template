@@ -14,7 +14,7 @@ Thank you for helping improve this template! This guide covers contributing back
 2. Create a feature branch: `git checkout -b feat/my-improvement`
 3. Make your changes following the conventions below
 4. Test your changes (see Testing section)
-5. Submit a PR against `master`
+5. Submit a PR against `main`
 
 ### What Makes a Good Contribution
 
@@ -73,7 +73,7 @@ Projects created from this template can pull updates:
 ```bash
 git remote add template https://github.com/Totes-MickGOATs/mcgoats-game-template.git
 git fetch template
-git merge template/master --no-ff --allow-unrelated-histories
+git merge template/main --no-ff --allow-unrelated-histories
 ```
 
 Resolve any conflicts, then commit. Engine-specific files won't conflict if they were removed by setup-engine.sh.

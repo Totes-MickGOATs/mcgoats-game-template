@@ -2,10 +2,10 @@
 # Pre-commit hook: master guard + lint staged files
 # Install: git config core.hooksPath .githooks
 
-# ── Master branch guard ──────────────────────────────────────────────────────
+# ── Main branch guard ────────────────────────────────────────────────────────
 CURRENT_BRANCH=$(git branch --show-current 2>/dev/null)
-if [ "$CURRENT_BRANCH" = "master" ] && [ -z "$ALLOW_MASTER_COMMIT" ]; then
-    echo "BLOCKED: Direct commits to master are not allowed."
+if [ "$CURRENT_BRANCH" = "main" ] && [ -z "$ALLOW_MASTER_COMMIT" ]; then
+    echo "BLOCKED: Direct commits to main are not allowed."
     echo ""
     echo "All code changes must go through feature branches + PRs."
     echo ""
@@ -13,7 +13,7 @@ if [ "$CURRENT_BRANCH" = "master" ] && [ -z "$ALLOW_MASTER_COMMIT" ]; then
     echo "  just worktree-create <task-name>"
     echo "  # ... develop on feat/<task> branch ..."
     echo "  git push -u origin feat/<task>"
-    echo "  gh pr create --base master"
+    echo "  gh pr create --base main"
     echo ""
     echo "Full workflow guide: .agents/skills/branch-workflow/SKILL.md"
     echo ""

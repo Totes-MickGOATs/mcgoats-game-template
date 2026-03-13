@@ -2,7 +2,7 @@ name: Update Coverage Baseline
 
 on:
   push:
-    branches: [master]
+    branches: [main]
     paths:
       - 'tests/test_*.gd'
       - 'tests/test_*.cs'

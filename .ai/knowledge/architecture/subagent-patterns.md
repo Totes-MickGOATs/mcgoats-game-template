@@ -18,7 +18,7 @@ Hard-won patterns for working with Claude Code subagents in a multi-PR workflow.
 
 ## Pattern 2: Rebase Cascade Cost
 
-**Problem:** The auto-merge queue processes PRs FIFO. When PR A merges, PR B must rebase onto the new master, re-run CI, and wait for auto-merge. If PR C is also open, it waits for B, then rebases itself. This creates O(N^2) CI runs.
+**Problem:** The auto-merge queue processes PRs FIFO. When PR A merges, PR B must rebase onto the new main, re-run CI, and wait for auto-merge. If PR C is also open, it waits for B, then rebases itself. This creates O(N^2) CI runs.
 
 **Real example:** Four parallel PRs took over 45 minutes to fully merge despite each having less than 1 minute of actual changes:
 - PR A merged first (clean)
@@ -83,7 +83,7 @@ All three passed CI because the JSON was valid and the hooks would silently not 
 **How to avoid:**
 - After dispatching parallel subagents, monitor the merge queue -- don't assume all PRs will auto-merge cleanly.
 - When a PR shows CONFLICTING or DIRTY, either:
-  - Resume the original subagent to rebase: `git fetch origin && git rebase origin/master`, resolve conflicts, force-push
+  - Resume the original subagent to rebase: `git fetch origin && git rebase origin/main`, resolve conflicts, force-push
   - Or dispatch a new subagent to handle the rebase
 - When resolving conflicts between parallel PRs, keep ALL changes from both branches -- they were independently correct.
 - Check PR status after each merge: `gh pr view <num> --json mergeable,mergeStateStatus`
@@ -92,7 +92,7 @@ All three passed CI because the JSON was valid and the hooks would silently not 
 **Rebase workflow for stale PRs:**
 ```bash
 git fetch origin
-git rebase origin/master
+git rebase origin/main
 # Resolve any conflicts (keep changes from both sides)
 git push --force-with-lease
 # CI re-runs automatically

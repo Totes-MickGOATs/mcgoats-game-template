@@ -1,5 +1,5 @@
 #!/bin/bash
-# Claude Code PreToolUse hook: block git commit on master branch.
+# Claude Code PreToolUse hook: block git commit on main branch.
 # This hook cannot be bypassed by --no-verify or any git flag.
 # It runs BEFORE the command executes.
 
@@ -20,12 +20,12 @@ fi
 # Check current branch
 BRANCH=$(git -C "$CLAUDE_PROJECT_DIR" branch --show-current 2>/dev/null)
 
-if [ "$BRANCH" = "master" ]; then
+if [ "$BRANCH" = "main" ]; then
     # Allow if ALLOW_MASTER_COMMIT is set in the command
     if echo "$CMD" | grep -qE 'ALLOW_MASTER_COMMIT=1'; then
         exit 0
     fi
-    echo "BLOCKED: Cannot commit on master branch." >&2
+    echo "BLOCKED: Cannot commit on main branch." >&2
     echo "" >&2
     echo "ALL code changes must go through feature branches + PRs." >&2
     echo "" >&2
@@ -33,8 +33,8 @@ if [ "$BRANCH" = "master" ]; then
     echo "already be on a feat/ branch. Verify:" >&2
     echo "  git branch --show-current" >&2
     echo "" >&2
-    echo "If you are the main agent or on master by mistake:" >&2
-    echo "  1. Do NOT edit files on master — dispatch a subagent instead" >&2
+    echo "If you are the main agent or on main by mistake:" >&2
+    echo "  1. Do NOT edit files on main — dispatch a subagent instead" >&2
     echo "  2. Use: Agent(prompt=..., isolation=\"worktree\")" >&2
     echo "  3. Or manually: just worktree-create <task-name>" >&2
     echo "" >&2

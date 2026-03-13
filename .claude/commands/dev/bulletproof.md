@@ -12,7 +12,7 @@ Run through ALL six phases. Every phase must PASS before the task is complete. I
 
 Verify the workspace is clean and you are on the correct branch.
 
-- [ ] **Branch check:** `git branch --show-current` shows `feat/<task>` (NOT `master`)
+- [ ] **Branch check:** `git branch --show-current` shows `feat/<task>` (NOT `main`)
 - [ ] **No uncommitted changes:** `git status` shows clean working tree (or only intentional unstaged files)
 - [ ] **Lint passes:** Run the project linter and confirm zero errors
   ```bash
@@ -30,7 +30,7 @@ Verify the workspace is clean and you are on the correct branch.
 Review every changed file for quality issues.
 
 ```bash
-git diff origin/master...HEAD --name-only
+git diff origin/main...HEAD --name-only
 ```
 
 For each changed file, verify:
@@ -106,9 +106,9 @@ Last checks before pushing.
 - [ ] **Local tests pass** — run all test files related to your changes one final time
 - [ ] **No uncommitted changes** — `git status` is clean
 - [ ] **All files committed** — no "forgot to add" files lurking
-- [ ] **Branch is fresh** — rebase onto latest `origin/master` if commits have landed:
+- [ ] **Branch is fresh** — rebase onto latest `origin/main` if commits have landed:
   ```bash
-  git fetch origin && git rebase origin/master
+  git fetch origin && git rebase origin/main
   ```
 - [ ] **Push and verify CI:**
   ```bash
@@ -120,7 +120,7 @@ Last checks before pushing.
   gh pr merge --auto --squash
   ```
 
-**PASS criteria:** CI green, auto-merge enabled, branch up to date with master.
+**PASS criteria:** CI green, auto-merge enabled, branch up to date with main.
 
 ---
 

@@ -6,8 +6,8 @@ cd "$CLAUDE_PROJECT_DIR" || exit 0
 
 BRANCH=$(git branch --show-current 2>/dev/null)
 
-# Only check on feature branches (not master)
-[[ "$BRANCH" == "master" ]] && exit 0
+# Only check on feature branches (not main)
+[[ "$BRANCH" == "main" ]] && exit 0
 [[ -z "$BRANCH" ]] && exit 0
 
 WARNINGS=""
@@ -37,7 +37,7 @@ if command -v gh &>/dev/null && [ -n "$REMOTE_REF" ]; then
         MERGED_NUM=$(echo "$MERGED_JSON" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d[0]['number'] if d else '')" 2>/dev/null || echo "")
         if [ -z "$MERGED_NUM" ]; then
             WARNINGS="${WARNINGS}NO PR CREATED: Branch '$BRANCH' is pushed but has no pull request.\n"
-            WARNINGS="${WARNINGS}  Run: gh pr create --base master\n\n"
+            WARNINGS="${WARNINGS}  Run: gh pr create --base main\n\n"
         fi
     fi
 fi

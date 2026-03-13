@@ -2,13 +2,13 @@
 command -v git-lfs >/dev/null 2>&1 || { printf >&2 "\n%s\n\n" "This repository is configured for Git LFS but 'git-lfs' was not found on your path. If you no longer wish to use Git LFS, remove this hook by deleting the 'pre-push' file in the hooks directory (set by 'core.hookspath'; usually '.git/hooks')."; exit 2; }
 git lfs pre-push "$@"
 
-# ── Master push guard ────────────────────────────────────────────────────────
-# Block direct pushes to master — use PRs instead.
+# ── Main branch push guard ───────────────────────────────────────────────────
+# Block direct pushes to main — use PRs instead.
 # Bypass (release only): ALLOW_MASTER_PUSH=1 git push ...
 while read local_ref local_sha remote_ref remote_sha; do
-    if echo "$remote_ref" | grep -qE 'refs/heads/master$'; then
+    if echo "$remote_ref" | grep -qE 'refs/heads/main$'; then
         if [ -z "$ALLOW_MASTER_PUSH" ]; then
-            echo "ERROR: Direct push to master is blocked. Use a PR."
+            echo "ERROR: Direct push to main is blocked. Use a PR."
             echo "Bypass (release only): ALLOW_MASTER_PUSH=1 git push ..."
             exit 1
         fi

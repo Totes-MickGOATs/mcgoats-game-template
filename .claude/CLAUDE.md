@@ -7,7 +7,7 @@ Claude Code configuration: hooks, commands, settings, and statusline.
 | File | Role |
 |------|------|
 | `settings.json` | Permissions, hooks, worktree config, statusline |
-| `guard-master-commit.sh` | PreToolUse hook: blocks git commit on master branch |
+| `guard-master-commit.sh` | PreToolUse hook: blocks git commit on main branch |
 | `statusline.sh` | Status bar: model, cost, tokens, context %, daily analytics |
 
 ## Subdirectories

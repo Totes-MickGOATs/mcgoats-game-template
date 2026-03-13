@@ -22,7 +22,7 @@ Edit these files with your project's details:
 
 ## 3. Configure GitHub Repository
 
-- [ ] **Branch protection** on `master`:
+- [ ] **Branch protection** on `main`:
   - Require pull request before merging
   - Required status checks: `Lint & Preflight` (+ engine-specific checks)
   - Block force pushes and branch deletion
@@ -37,7 +37,7 @@ Edit these files with your project's details:
 git config core.hooksPath .githooks
 ```
 
-This enables the pre-commit master guard, pre-push protection, and commit message validation.
+This enables the pre-commit main branch guard, pre-push protection, and commit message validation.
 
 ## 5. Install Python Dependencies
 
@@ -58,7 +58,7 @@ git commit -m "test: verify setup"
 
 # Push and create PR
 git push -u origin feat/test-setup
-gh pr create --base master --title "test: verify setup" --body "Testing template setup"
+gh pr create --base main --title "test: verify setup" --body "Testing template setup"
 
 # Watch CI
 just watch-ci

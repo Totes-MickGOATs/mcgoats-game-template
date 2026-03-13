@@ -9,12 +9,12 @@ This file provides guidance to Claude Code when working with this repository.
 > **If you are a subagent spawned with `isolation: "worktree"`:** You are already on a feature branch. Verify with `git branch --show-current` — it should show `feat/...` or `.claude/...`. Proceed to implementation.
 >
 > **If you are the main agent or were NOT spawned with `isolation: "worktree"`:**
-> 1. **Do NOT edit any files yet.** You are on `master` and commits will be blocked.
+> 1. **Do NOT edit any files yet.** You are on `main` and commits will be blocked.
 > 2. **Dispatch a subagent with `isolation: "worktree"`** to do the implementation work.
 > 3. The subagent handles: code changes → commit → push → PR → CI green → label `ready-to-merge`.
 > 4. You verify the PR merged successfully, then run `just worktree-cleanup <task>`.
 >
-> **Why this matters:** Three enforcement layers block master commits (PreToolUse hook, git pre-commit hook, GitHub branch protection). If you edit files on master, you'll waste work that can't be committed.
+> **Why this matters:** Three enforcement layers block main branch commits (PreToolUse hook, git pre-commit hook, GitHub branch protection). If you edit files on main, you'll waste work that can't be committed.
 >
 > **Full workflow guide:** `.agents/skills/branch-workflow/SKILL.md`
 
@@ -43,7 +43,7 @@ Current state: _Update `.ai/knowledge/status/project-status.md` with phase track
 
 ## Git — Branch Workflow (STOP AND READ)
 
-> **MANDATORY:** All changes go through feature branches + PRs. Direct commits/pushes to master are **blocked** by local hooks AND GitHub branch protection. You WILL get errors if you try.
+> **MANDATORY:** All changes go through feature branches + PRs. Direct commits/pushes to main are **blocked** by local hooks AND GitHub branch protection. You WILL get errors if you try.
 >
 > **Before writing ANY code**, read the workflow below. Full details + gotchas: `.agents/skills/branch-workflow/SKILL.md`
 
@@ -53,16 +53,16 @@ Current state: _Update `.ai/knowledge/status/project-status.md` with phase track
 just worktree-create <task>          # 1. Create feature branch + worktree
 # ... develop, commit, test ...      # 2. Work on feat/<task> branch
 git push -u origin feat/<task>       # 3. Push
-gh pr create --base master           # 4. Open PR → CI runs automatically
+gh pr create --base main             # 4. Open PR → CI runs automatically
 # CI auto-labels ready-to-merge      # 5. Auto-merge triggers on label → squash-merges
 just worktree-cleanup <task>         # 6. Clean up after merge
 ```
 
 ### Branch Workflow
 
-1. **Create a worktree:** `just worktree-create <task-name>` (creates `feat/<task>` from `origin/master`)
+1. **Create a worktree:** `just worktree-create <task-name>` (creates `feat/<task>` from `origin/main`)
 2. **Develop:** Commit frequently in the feature branch. Commit message format: `type: short description`
-3. **Push + PR:** `git push -u origin feat/<task>` then `gh pr create --base master`
+3. **Push + PR:** `git push -u origin feat/<task>` then `gh pr create --base main`
 4. **CI validates:** Lint & Preflight must pass (tests are advisory unless configured otherwise)
 5. **Merge:** CI auto-adds `ready-to-merge` label → auto-merge workflow squash-merges when up-to-date
 6. **Cleanup:** `just worktree-cleanup <task>` or `just worktree-sync` for batch cleanup
@@ -70,7 +70,7 @@ just worktree-cleanup <task>         # 6. Clean up after merge
 ### Agent Protocol (Claude Code agents with `isolation: "worktree"`)
 
 > **HARD RULES FOR AGENTS:**
-> - **NEVER commit on the `master` branch.** A PreToolUse hook will block you. Work on your feature branch.
+> - **NEVER commit on the `main` branch.** A PreToolUse hook will block you. Work on your feature branch.
 > - **NEVER use `--no-verify`** on git commit. The hook will block this too. Fix the underlying issue instead.
 > - **ALWAYS use `isolation: "worktree"`** when spawning subagents that write code.
 > - **NEVER leave your branch unmerged or CI failing.** You own your branch from creation to merge. See Definition of Done below.
@@ -81,29 +81,29 @@ Agents follow the same workflow: develop in worktree → push → PR → label `
 
 When you receive a task that requires code changes:
 
-1. **Do NOT start editing files.** You are likely on `master`.
+1. **Do NOT start editing files.** You are likely on `main`.
 2. **Dispatch a subagent** with `isolation: "worktree"` to handle implementation.
 3. **The subagent is responsible for the full lifecycle:** code → test → commit → push → PR → CI green → `ready-to-merge` label.
 4. **After the subagent completes**, verify the PR was created and CI is green.
 5. **Cleanup:** `just worktree-cleanup <task>` once the PR merges.
 
-**Common mistake:** Starting to edit files directly, then discovering you can't commit because you're on master. Always dispatch first, edit never.
+**Common mistake:** Starting to edit files directly, then discovering you can't commit because you're on main. Always dispatch first, edit never.
 
 ### Keeping Branches Fresh
 
-**Main agent (on master):** Before dispatching subagents, pull the latest remote master so worktrees start from the newest commit:
+**Main agent (on main):** Before dispatching subagents, pull the latest remote main so worktrees start from the newest commit:
 
 ```bash
-git fetch origin && git pull --ff-only origin master
+git fetch origin && git pull --ff-only origin main
 ```
 
-**Subagents (on feature branches):** Before pushing, rebase onto the latest master to incorporate changes that landed while you were working:
+**Subagents (on feature branches):** Before pushing, rebase onto the latest main to incorporate changes that landed while you were working:
 
 ```bash
-git fetch origin && git rebase origin/master
+git fetch origin && git rebase origin/main
 ```
 
-If rebase conflicts occur, resolve them before pushing. Do not push a branch that is behind `origin/master` when commits have landed since your worktree was created.
+If rebase conflicts occur, resolve them before pushing. Do not push a branch that is behind `origin/main` when commits have landed since your worktree was created.
 
 ### Definition of Done
 
@@ -131,8 +131,8 @@ If lint CI fails after you push, you are responsible for:
 
 ### Master Protection (Three Layers)
 
-- **Local hooks:** `.githooks/pre-commit` blocks commits on master, `.githooks/pre-push` blocks pushes to master
-- **Claude hooks:** `.claude/hooks/` PreToolUse hooks block file edits on master
+- **Local hooks:** `.githooks/pre-commit` blocks commits on main, `.githooks/pre-push` blocks pushes to main
+- **Claude hooks:** `.claude/hooks/` PreToolUse hooks block file edits on main
 - **GitHub branch protection:** Required PR, required CI checks, no force push, no deletion
 - **Bypass (release only):** `ALLOW_MASTER_COMMIT=1` / `ALLOW_MASTER_PUSH=1` environment variables
 
@@ -172,14 +172,14 @@ Most changes require BOTH unit tests and integration tests:
 
 ### Testing Strategy: Local TDD, Post-Merge Safety Net
 
-> **IMPORTANT:** Run tests locally during TDD. The full suite runs automatically post-merge on master.
+> **IMPORTANT:** Run tests locally during TDD. The full suite runs automatically post-merge on main.
 
 **Do NOT run the full test suite locally.** It ties up the developer's machine. Instead:
 
 1. Write your test, run it locally for the red-green TDD cycle
 2. Push to your feature branch — lint CI runs automatically
 3. Once lint passes, auto-merge handles the rest
-4. Full test suite runs post-merge on master
+4. Full test suite runs post-merge on main
 5. If post-merge tests fail, a `ci-failure` issue is auto-created — run `/ci:next-fix` to pick it up
 
 ## Python Tooling (scripts/tools only, not game code)

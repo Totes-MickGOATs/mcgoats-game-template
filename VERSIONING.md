@@ -32,7 +32,7 @@ MAJOR.MINOR.PATCH[-PRERELEASE][+BUILD]
 
 ## Release Lifecycle
 
-1. Development on feature branches → merge to master
+1. Development on feature branches → merge to main
 2. When ready for release: tag `vX.Y.Z-rc.1` → test
 3. Final release: tag `vX.Y.Z` → build → publish
 
