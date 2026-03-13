@@ -12,8 +12,16 @@
       "Bash(git diff*)",
       "Bash(git add*)",
       "Bash(git commit*)",
+      "Bash(git branch*)",
+      "Bash(git fetch*)",
+      "Bash(git push*)",
+      "Bash(git rebase*)",
       "Bash(uv *)",
-      "Bash(just *)"
+      "Bash(just *)",
+      "Bash(gh run *)",
+      "Bash(gh pr *)",
+      "Bash(gh issue *)",
+      "Bash(chmod *)"
     ]
   },
   "hooks": {

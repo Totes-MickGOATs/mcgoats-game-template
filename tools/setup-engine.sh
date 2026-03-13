@@ -140,6 +140,26 @@ copy_engine_files() {
         warn "No hooks/ directory in engine/${ENGINE}/ — skipping"
     fi
 
+    # --- Commands → .claude/commands/ ---
+    header "Claude Commands"
+    if [[ -d "${ENGINE_DIR}/commands" ]]; then
+        mkdir -p "${PROJECT_ROOT}/.claude/commands"
+        # Copy each command subdirectory (e.g. editor/, dev/)
+        for cmd_dir in "${ENGINE_DIR}/commands/"*/; do
+            [[ -d "$cmd_dir" ]] || continue
+            local dir_basename
+            dir_basename="$(basename "$cmd_dir")"
+            mkdir -p "${PROJECT_ROOT}/.claude/commands/${dir_basename}"
+            for cmd_file in "${cmd_dir}"*.md; do
+                [[ -f "$cmd_file" ]] || continue
+                cp "$cmd_file" "${PROJECT_ROOT}/.claude/commands/${dir_basename}/"
+                success "Copied $(basename "$cmd_file") -> .claude/commands/${dir_basename}/"
+            done
+        done
+    else
+        info "No commands/ directory in engine/${ENGINE}/ — skipping"
+    fi
+
     # --- CI workflows → .github/workflows/ ---
     header "CI Workflows"
     if [[ -d "${ENGINE_DIR}/ci" ]]; then
@@ -369,7 +389,7 @@ print_summary() {
     echo -e "${GREEN}${BOLD}================================================================${NC}"
     echo ""
     echo -e "${BOLD}What was done:${NC}"
-    echo "  - Copied .mcp.json, justfile.engine, hooks, and CI workflows"
+    echo "  - Copied .mcp.json, justfile.engine, hooks, commands, and CI workflows"
     case "$ENGINE" in
         godot)
             echo "  - Copied gdlintrc, gdformatrc, CLAUDE.md templates, and skills"

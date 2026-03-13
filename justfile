@@ -17,6 +17,41 @@ setup:
     @echo "--- Python dependencies installed, git hooks configured ---"
     @echo "--- Setup complete ---"
 
+# One-command project initialization (interactive)
+quick-start:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "🎮 mcgoats-game-template Quick Start"
+    echo ""
+    echo "Available engines:"
+    echo "  1) godot   — Godot 4.x (GDScript) [Full support]"
+    echo "  2) unity   — Unity (C#) [Basic stubs]"
+    echo "  3) unreal  — Unreal Engine (C++) [Empty stubs]"
+    echo ""
+    read -p "Select engine (godot/unity/unreal): " engine
+    if [[ -z "$engine" ]]; then
+        echo "No engine selected. Aborting."
+        exit 1
+    fi
+    echo ""
+    echo "Running setup..."
+    bash tools/setup-engine.sh "$engine"
+    echo ""
+    echo "Installing Python dependencies..."
+    uv sync
+    echo ""
+    echo "Configuring git hooks..."
+    git config core.hooksPath .githooks
+    chmod +x .githooks/* .claude/hooks/* .claude/*.sh 2>/dev/null || true
+    echo ""
+    echo "✅ Quick start complete!"
+    echo ""
+    echo "Next steps:"
+    echo "  1. Set up GitHub branch protection and MERGE_TOKEN secret"
+    echo "     Run: /dev:init-project for a guided walkthrough"
+    echo "  2. Customize README.md and CLAUDE.md for your project"
+    echo "  3. Start building: just worktree-create first-feature"
+
 # --- Linting ---
 
 # Lint Python scripts

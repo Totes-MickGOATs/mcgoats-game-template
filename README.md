@@ -1,5 +1,7 @@
 # mcgoats-game-template
 
+[![Validate Template](https://github.com/Totes-MickGOATs/mcgoats-game-template/actions/workflows/validate-template.yml/badge.svg)](https://github.com/Totes-MickGOATs/mcgoats-game-template/actions/workflows/validate-template.yml)
+
 AI-powered game development template with battle-tested CI/CD, auto-merge queues, TDD enforcement, and Claude Code integration. Start new game projects with production-grade infrastructure from day one.
 
 ## What You Get

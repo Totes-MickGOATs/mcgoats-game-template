@@ -1,0 +1,66 @@
+name: Validate Template
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check setup script syntax
+        run: bash -n tools/setup-engine.sh
+
+      - name: Validate YAML workflows
+        run: |
+          for f in .github/workflows/*.yml; do
+            echo "Checking $f..."
+            python3 -c "import yaml; yaml.safe_load(open('$f'))" || exit 1
+          done
+          for f in engine/*/ci/*.yml; do
+            if [ -f "$f" ]; then
+              echo "Checking $f..."
+              python3 -c "import yaml; yaml.safe_load(open('$f'))" || exit 1
+            fi
+          done
+
+      - name: Check all shell scripts have shebangs
+        run: |
+          find . -name "*.sh" -not -path "./.git/*" | while read f; do
+            head -1 "$f" | grep -qE '^#!/' || { echo "Missing shebang: $f"; exit 1; }
+          done
+
+      - name: Check CLAUDE.md coverage
+        run: |
+          MISSING=0
+          for dir in $(find . -type d -not -path './.git*' -not -path './engine/*' -not -path './.ruff_cache*' -not -path './.serena*' -not -name '.*' | sort); do
+            if [ -n "$(ls -A "$dir" 2>/dev/null)" ] && [ ! -f "$dir/CLAUDE.md" ]; then
+              # Only flag directories that contain files (not just subdirs)
+              if find "$dir" -maxdepth 1 -type f | grep -q .; then
+                echo "Missing CLAUDE.md: $dir"
+                MISSING=$((MISSING + 1))
+              fi
+            fi
+          done
+          if [ $MISSING -gt 0 ]; then
+            echo "WARNING: $MISSING directories missing CLAUDE.md"
+          fi
+
+      - name: Check engine modules exist
+        run: |
+          for engine in godot unity unreal; do
+            [ -d "engine/$engine" ] || { echo "Missing engine module: $engine"; exit 1; }
+            [ -f "engine/$engine/SETUP.md" ] || { echo "Missing SETUP.md for $engine"; exit 1; }
+            [ -f "engine/$engine/justfile.engine" ] || { echo "Missing justfile.engine for $engine"; exit 1; }
+          done
+
+      - name: Check JSON validity
+        run: |
+          for f in $(find . -name "*.json" -not -path "./.git/*"); do
+            echo "Checking $f..."
+            python3 -c "import json; json.load(open('$f'))" || exit 1
+          done
