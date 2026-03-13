@@ -345,6 +345,14 @@ validate-docs:
 validate-docs-ci:
     uv run python scripts/tools/validate_claude_md.py --ci --threshold 30
 
+# Sync updates from template repo (idempotent: create/update only, never delete)
+sync-template section="all":
+    bash tools/sync-template.sh --section "{{ section }}"
+
+# Preview what sync-template would change (no modifications)
+sync-template-dry section="all":
+    bash tools/sync-template.sh --dry-run --section "{{ section }}"
+
 # Check for template upstream drift
 check-template-sync:
     #!/usr/bin/env bash

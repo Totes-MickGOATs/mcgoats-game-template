@@ -7,6 +7,7 @@ Project setup and configuration scripts.
 | File | Role |
 |------|------|
 | `setup-engine.sh` | Interactive engine setup: copies configs, hooks, CI, skills for chosen engine |
+| `sync-template.sh` | Pull updates from template repo into a project (idempotent: create/update only) |
 
 ## Relevant Skills
 
