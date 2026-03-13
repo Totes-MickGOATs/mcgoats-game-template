@@ -154,8 +154,9 @@ sync_file() {
     local local_path="$2"      # Where to put it locally
 
     # Check if file exists in template
+    # MSYS_NO_PATHCONV=1 prevents Windows/MSYS2 from mangling the : in rev:path
     local content
-    content=$(git show "${TEMPLATE_REMOTE}/${TEMPLATE_BRANCH}:${template_path}" 2>/dev/null) || {
+    content=$(MSYS_NO_PATHCONV=1 git show "${TEMPLATE_REMOTE}/${TEMPLATE_BRANCH}:${template_path}" 2>/dev/null) || {
         skip "${template_path} — not found in template"
         return 1
     }
@@ -209,7 +210,7 @@ sync_directory() {
 
     # List all files in the template directory
     local files
-    files=$(git ls-tree -r --name-only "${TEMPLATE_REMOTE}/${TEMPLATE_BRANCH}" -- "${template_dir}" 2>/dev/null) || {
+    files=$(MSYS_NO_PATHCONV=1 git ls-tree -r --name-only "${TEMPLATE_REMOTE}/${TEMPLATE_BRANCH}" -- "${template_dir}" 2>/dev/null) || {
         skip "${template_dir} — not found in template"
         return 1
     }
@@ -243,7 +244,7 @@ sync_hooks() {
 
     # Engine-specific hooks → .claude/hooks/
     local hooks
-    hooks=$(git ls-tree --name-only "${TEMPLATE_REMOTE}/${TEMPLATE_BRANCH}" -- "engine/${ENGINE}/hooks/" 2>/dev/null | grep -v "CLAUDE.md" || true)
+    hooks=$(MSYS_NO_PATHCONV=1 git ls-tree --name-only "${TEMPLATE_REMOTE}/${TEMPLATE_BRANCH}" -- "engine/${ENGINE}/hooks/" 2>/dev/null | grep -v "CLAUDE.md" || true)
 
     if [[ -n "$hooks" ]]; then
         while IFS= read -r hook_path; do
@@ -306,7 +307,7 @@ sync_ci() {
 
     # Engine-specific CI
     local workflows
-    workflows=$(git ls-tree --name-only "${TEMPLATE_REMOTE}/${TEMPLATE_BRANCH}" -- "engine/${ENGINE}/ci/" 2>/dev/null | grep '\.yml$' || true)
+    workflows=$(MSYS_NO_PATHCONV=1 git ls-tree --name-only "${TEMPLATE_REMOTE}/${TEMPLATE_BRANCH}" -- "engine/${ENGINE}/ci/" 2>/dev/null | grep '\.yml$' || true)
 
     if [[ -n "$workflows" ]]; then
         while IFS= read -r wf_path; do
@@ -355,7 +356,7 @@ sync_claude_md() {
     header "CLAUDE.md Templates"
 
     local templates
-    templates=$(git ls-tree --name-only "${TEMPLATE_REMOTE}/${TEMPLATE_BRANCH}" -- "engine/${ENGINE}/claude-md/" 2>/dev/null | grep -v "^engine/${ENGINE}/claude-md/CLAUDE.md$" || true)
+    templates=$(MSYS_NO_PATHCONV=1 git ls-tree --name-only "${TEMPLATE_REMOTE}/${TEMPLATE_BRANCH}" -- "engine/${ENGINE}/claude-md/" 2>/dev/null | grep -v "^engine/${ENGINE}/claude-md/CLAUDE.md$" || true)
 
     if [[ -z "$templates" ]]; then
         info "No CLAUDE.md templates for ${ENGINE}"
