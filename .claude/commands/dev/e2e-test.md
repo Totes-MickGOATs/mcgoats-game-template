@@ -1,3 +1,7 @@
+---
+description: Run end-to-end tests that exercise full user journeys through the live game
+---
+
 Run end-to-end tests that exercise full user journeys through the live game.
 
 ## What Are E2E Tests?

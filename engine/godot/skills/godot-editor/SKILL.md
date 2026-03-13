@@ -1,6 +1,6 @@
 ---
 name: godot-editor
-description: "Master reference for all Godot editor workflows, MCP tools, CLI commands, justfile recipes, and custom slash commands available in the R8EO-X project. Use when orchestrating editor actions, discovering available tools, or planning multi-step workflows. Keywords: editor, workflow, MCP, commands, automation, justfile, pipeline."
+description: "Master reference for all Godot editor workflows, MCP tools, CLI commands, justfile recipes, and custom slash commands. Use when orchestrating editor actions, discovering available tools, or planning multi-step workflows. Keywords: editor, workflow, MCP, commands, automation, justfile, pipeline."
 metadata:
   source: project-specific
   version: 1.0.0
@@ -13,7 +13,7 @@ metadata:
 
 # Godot Editor Workflows
 
-Master skill for all editor-side tooling in R8EO-X. Use this as a dispatch reference to find the right tool for any editor task.
+Master skill for all editor-side tooling. Use this as a dispatch reference to find the right tool for any editor task.
 
 ## Quick Reference: What Tool to Use
 
@@ -101,7 +101,7 @@ Commands are namespaced into subdirectories: `dev:`, `editor:`, `ci:`, `track:`,
 | Command | Purpose | Key Actions |
 |:---|:---|:---|
 | `/dev:run-tests` | Execute GUT test suite | `just test`, parse results, diagnose failures |
-| `/dev:review-code` | Review against 12 project conventions | `git diff`, check GEVP API/collision layers/etc. |
+| `/dev:review-code` | Review against project conventions | `git diff`, check API usage/collision layers/etc. |
 | `/dev:check-performance` | Audit for perf anti-patterns | Scan for uncached get_node(), hot loop allocations |
 | `/dev:test-session` | Interactive play-test with monitoring | Launch game via MCP, poll debug output, produce report |
 
@@ -120,16 +120,10 @@ Commands are namespaced into subdirectories: `dev:`, `editor:`, `ci:`, `track:`,
 |:---|:---|:---|
 | `/ci:fix-ci` | Diagnose and fix CI failures | `gh run view`, check CI_LEARNINGS.md, fix + document |
 
+<!-- Add project-specific command categories here as you create them.
 ### Track (`track:`)
-| Command | Purpose | Key Actions |
-|:---|:---|:---|
-| `/track:build-terrain` | Full terrain asset pipeline | `just build-outpost` + `just pack-textures` |
-| `/track:add-surface-zone` | Add surface zone to track | Create StaticBody3D, assign surface group |
-
 ### Physics (`physics:`)
-| Command | Purpose | Key Actions |
-|:---|:---|:---|
-| `/physics:tune-physics` | Analyze car physics params | Read GEVP exports, compare against references |
+-->
 
 ---
 
@@ -148,7 +142,7 @@ just check-dlls      # Verify addon DLLs are real binaries (not LFS stubs)
 ```bash
 just test            # Run GUT unit tests (headless)
 just import          # Force reimport all assets (headless)
-just export          # Export Windows build to builds/windows/R8EO-X.exe
+just export          # Export Windows build to builds/windows/game.exe
 just setup           # Install deps + configure git hooks
 ```
 
@@ -299,7 +293,7 @@ godot -e --quit-after 2 --headless
 godot --headless -s scripts/tools/my_batch_job.gd
 
 # Export Windows build
-godot -v --export-release --headless "Windows Desktop" builds/windows/R8EO-X.exe
+godot -v --export-release --headless "Windows Desktop" builds/windows/game.exe
 ```
 
 See: [Godot CLI Reference](references/godot-cli.md)

@@ -123,7 +123,7 @@ Guide the user to customize these files:
 2. **`.github/template-config.json`** — Set `GAME_NAME` to the actual game name
 3. **`.ai/knowledge/status/project-status.md`** — Initialize phase tracking for the project
 4. **`.ai/knowledge/architecture/coding-standards.md`** — Add project-specific conventions
-5. **`cliff.toml`** — Replace `YOUR_ORG/YOUR_REPO` with the actual GitHub repo URL
+5. **`cliff.toml`** — In `postprocessors`, replace `https://github.com/YOUR_ORG/YOUR_REPO` with the actual repo URL
 6. **`CLAUDE.md`** — Fill in engine-specific sections, add project overview
 
 ## Phase 6: Verification

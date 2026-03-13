@@ -1,3 +1,7 @@
+---
+description: Scaffold a new game system with manifest, directory, CLAUDE.md, and stub test
+---
+
 Scaffold a new game system with manifest, directory, CLAUDE.md, and stub test.
 
 ## Gather Requirements
@@ -22,17 +26,16 @@ Create `resources/manifests/<snake_case_name>.json` with this structure:
 
 ```json
 {
-  "system_name": "<System Name>",
+  "name": "<snake_case_name>",
   "description": "<description>",
-  "status": "active",
-  "replaced_by": "",
-  "entry_point": "<entry_point_path>",
-  "depends_on": [],
-  "owned_scripts": ["<entry_point_path>"],
-  "owned_scenes": [],
-  "owned_resources": []
+  "status": "ACTIVE",
+  "files": ["<entry_point_path>"],
+  "dependencies": [],
+  "replaced_by": ""
 }
 ```
+
+Use status values: `ACTIVE`, `DEPRECATED`, or `EXPERIMENTAL`.
 
 Adapt the manifest format to the project's engine if a different format is used (e.g., `.tres` for Godot, `.asset` for Unity). Check existing manifests in `resources/manifests/` for the correct format and mirror it exactly.
 

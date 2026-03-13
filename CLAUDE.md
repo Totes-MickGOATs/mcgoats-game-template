@@ -273,7 +273,6 @@ When deciding how to declare a value, use the appropriate tier:
 - `.ai/knowledge/architecture/system-overview.md` — scene graph, signal map, data flow, ADRs
 - `.ai/knowledge/architecture/coding-standards.md` — coding conventions for this project
 - `.ai/knowledge/status/project-status.md` — phase checklist, full scripts/scenes inventory
-- `GDD.md` — game design document
 - `VERSIONING.md` — SemVer convention, release lifecycle, build types
 - `SETUP.md` — first-time project setup guide
 

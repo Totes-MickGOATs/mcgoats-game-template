@@ -113,27 +113,27 @@ Function keys toggle debug displays without interrupting gameplay. Each overlay 
 ### Overlay Registry Pattern
 
 ```
-# Pseudocode
+# Pseudocode — adapt to your engine's input and scene system
 var _overlays = {}
 
-func register_overlay(key: int, name: String, overlay_scene: PackedScene) -> void:
+func register_overlay(key: int, name: String, overlay_template) -> void:
     _overlays[key] = {
         "name": name,
-        "scene": overlay_scene,
+        "template": overlay_template,
         "instance": null,
         "visible": false
     }
 
-func _input(event: InputEvent) -> void:
-    if event is InputEventKey and event.pressed and not event.echo:
+func on_input(event) -> void:
+    if is_key_press(event) and not is_key_repeat(event):
         if event.keycode in _overlays:
             toggle_overlay(event.keycode)
 
 func toggle_overlay(key: int) -> void:
     var overlay = _overlays[key]
     if overlay.instance == null:
-        overlay.instance = overlay.scene.instantiate()
-        add_child(overlay.instance)
+        overlay.instance = instantiate(overlay.template)
+        add_to_scene(overlay.instance)
     overlay.visible = not overlay.visible
     overlay.instance.visible = overlay.visible
 ```
@@ -174,14 +174,14 @@ A dedicated overlay for real-time performance monitoring:
 
 | Metric | Source | Warning Threshold |
 |--------|--------|-------------------|
-| FPS | `Engine.get_frames_per_second()` | < 55 (for 60Hz target) |
+| FPS | Engine FPS query (e.g., `Engine.get_frames_per_second()`) | < 55 (for 60Hz target) |
 | Frame time | `1000.0 / fps` in ms | > 18ms |
-| Physics ticks/sec | Count `_physics_process` calls | Deviation from target |
-| Draw calls | Renderer stats | > project-specific threshold |
-| Memory (static) | `OS.get_static_memory_usage()` | > 500 MB |
-| Memory (dynamic) | `OS.get_dynamic_memory_usage()` | Rapid growth |
-| Objects | `Performance.get_monitor(OBJECT_COUNT)` | > expected ceiling |
-| Nodes | `Performance.get_monitor(OBJECT_NODE_COUNT)` | > expected ceiling |
+| Physics ticks/sec | Count physics step calls per second | Deviation from target |
+| Draw calls | Renderer statistics API | > project-specific threshold |
+| Memory (static) | OS/engine memory query (e.g., `OS.get_static_memory_usage()`) | > 500 MB |
+| Memory (dynamic) | OS/engine dynamic memory query | Rapid growth |
+| Objects | Engine object count metric | > expected ceiling |
+| Nodes/Entities | Engine entity count metric | > expected ceiling |
 
 ### Frame Time Graph
 
@@ -192,10 +192,10 @@ A rolling graph of frame times is more useful than an FPS counter alone. It reve
 
 ```
 # Pseudocode
-var frame_times: Array[float] = []
+var frame_times: Array = []
 const MAX_SAMPLES = 300  # 5 seconds at 60fps
 
-func _process(delta: float) -> void:
+func on_frame_update(delta: float) -> void:
     frame_times.append(delta * 1000.0)
     if frame_times.size() > MAX_SAMPLES:
         frame_times.pop_front()
@@ -261,14 +261,14 @@ The Debug autoload should detect headless/CI mode and adapt:
 
 ```
 # Pseudocode
-var is_ci: bool = OS.has_feature("headless") or OS.get_environment("CI") != ""
+var is_ci: bool = is_headless_mode() or get_env("CI") != ""
 
-func _ready() -> void:
+func on_ready() -> void:
     if is_ci:
         # Disable visual overlays
         # Enable structured log output (machine-parseable)
         # Set log level from environment variable
-        set_level(OS.get_environment("DEBUG_LEVEL") or "warn")
+        set_level(get_env("DEBUG_LEVEL") or "warn")
 ```
 
 ### Structured CI Output

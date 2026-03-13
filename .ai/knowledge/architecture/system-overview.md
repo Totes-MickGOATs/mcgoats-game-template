@@ -13,26 +13,26 @@ Architecture map for the [YOUR_PROJECT_NAME] codebase.
      This helps agents understand the runtime hierarchy without opening the editor. -->
 
 ```
-scenes/main.tscn  [Node3D — script: main.gd]
-├── [YourLevel]  [scenes/levels/your_level.tscn]
+scenes/main  [Root scene — script: main.<ext>]
+├── [YourLevel]  [scenes/levels/your_level]
 │   └── ...  (terrain, environment nodes)
-├── [YourPlayer]  [scenes/player/player.tscn]
-│   ├── CollisionShape3D  (shape type and dimensions)
-│   ├── MeshInstance3D  (visual representation)
-│   └── Camera3D  (or RemoteTransform3D → separate camera)
-├── [UI Layer]  [scenes/ui/hud.tscn — CanvasLayer]
+├── [YourPlayer]  [scenes/player/player]
+│   ├── CollisionShape  (collision geometry)
+│   ├── Mesh / Sprite  (visual representation)
+│   └── Camera  (player camera)
+├── [UI Layer]  [scenes/ui/hud — UI overlay]
 └── [Effects]  (particles, audio, etc.)
 
-Autoloads (project.godot, globally accessible):
-├── GameManager   (scripts/autoloads/game_manager.gd)
-├── ...           (add your autoloads here)
+Singletons / Autoloads (globally accessible):
+├── GameManager   (scripts/autoloads/game_manager.<ext>)
+├── ...           (add your singletons here)
 └── ...
 ```
 
 <!-- TIP: Keep this updated as scenes change. Include:
-     - Node type in parentheses (MeshInstance3D, RigidBody3D, etc.)
-     - Script class name if the node has a script
-     - Key exported properties or dimensions that affect gameplay
+     - Node/entity type in parentheses
+     - Script/component class name if applicable
+     - Key exported/serialized properties that affect gameplay
      - [same children as X] shorthand for repeated subtrees -->
 
 ---
@@ -44,9 +44,9 @@ Autoloads (project.godot, globally accessible):
 
 | File | Class | Base | Role |
 |------|-------|------|------|
-| `scripts/main.gd` | -- | `Node3D` | Scene wiring: injects references into subsystems |
-<!-- | `scripts/player/player.gd` | `Player` | `CharacterBody3D` | Player controller |
-| `scripts/autoloads/game_manager.gd` | `GameManager` | `Node` | Game state, pause handling |
+| `scripts/main.<ext>` | -- | Scene root type | Scene wiring: injects references into subsystems |
+<!-- | `scripts/player/player.<ext>` | `Player` | Player base type | Player controller |
+| `scripts/autoloads/game_manager.<ext>` | `GameManager` | Singleton base type | Game state, pause handling |
 | ... | ... | ... | ... | -->
 
 ---
@@ -58,8 +58,8 @@ Autoloads (project.godot, globally accessible):
 
 | Singleton | File | Signals | Responsibilities |
 |-----------|------|---------|-----------------|
-<!-- | `GameManager` | `game_manager.gd` | `game_paused(paused: bool)` | Game state, pause tree, quit |
-| `SceneManager` | `scene_manager.gd` | `scene_loaded(scene_name)` | Scene transitions, loading screen |
+<!-- | `GameManager` | `game_manager.<ext>` | `game_paused(paused: bool)` | Game state, pause tree, quit |
+| `SceneManager` | `scene_manager.<ext>` | `scene_loaded(scene_name)` | Scene transitions, loading screen |
 | ... | ... | ... | ... | -->
 
 ---
@@ -74,12 +74,12 @@ Autoloads (project.godot, globally accessible):
 
 | Signal | Emitter | Connected By | Consumer | Purpose |
 |--------|---------|-------------|---------|---------|
-<!-- | `game_paused(paused)` | `GameManager` | `hud.gd._ready()` | `HUD` | Toggle pause overlay |
-| `score_changed(new_score)` | `ScoreManager` | `main.gd._ready()` | `HUD` | Update score display |
+<!-- | `game_paused(paused)` | `GameManager` | `hud.on_ready()` | `HUD` | Toggle pause overlay |
+| `score_changed(new_score)` | `ScoreManager` | `main.on_ready()` | `HUD` | Update score display |
 | ... | ... | ... | ... | ... | -->
 
-<!-- TIP: Include who connects the signal (usually the consumer's _ready() or a
-     parent's wiring code). This helps agents trace the full connection chain. -->
+<!-- TIP: Include who connects the signal (usually the consumer's initialization
+     method or a parent's wiring code). This helps agents trace the full connection chain. -->
 
 ---
 
@@ -88,43 +88,43 @@ Autoloads (project.godot, globally accessible):
 <!-- Document how data moves through your systems each frame.
      Separate by update type: physics frame, render frame, events. -->
 
-### Physics Frame Pipeline (`_physics_process`)
+### Physics Frame Pipeline (fixed timestep)
 
 <!-- Show the call chain for physics-critical code. Use indentation to show nesting. -->
 
 ```
 InputManager.get_input()
   |
-Player._physics_process(delta)
+Player.physics_update(delta)
   |-- Read input
   |-- Apply movement
   |-- Check collisions
   |-- Update state
   |
-PhysicsSubsystem._physics_process(delta)
+PhysicsSubsystem.physics_update(delta)
   |-- Process interactions
   |-- Apply forces
 ```
 
-### UI Update Pipeline (`_process`)
+### UI Update Pipeline (per frame)
 
 <!-- Show how UI elements read and display game state each frame. -->
 
 ```
-HUD._process()
+HUD.update()
   |-- Read player state (pull model)
   |-- Update labels / bars / indicators
 ```
 
 ### Scene Wiring (initialization)
 
-<!-- Show how main.gd or your entry point wires systems together on load. -->
+<!-- Show how your entry point script wires systems together on load. -->
 
 ```
-main.gd._ready():
+main.on_ready():
   find references to scene nodes
   inject dependencies (set_player, set_terrain, etc.)
-  connect signals
+  connect signals / events
   start gameplay
 ```
 
@@ -148,7 +148,7 @@ Player dies
      when they change something. Use arrows to show dependency direction. -->
 
 ```
-main.gd
+main (entry point)
   |-- depends on --> Player, Level, HUD, Effects
   |-- wires --> all subsystems together
 
@@ -158,11 +158,11 @@ Player
   |-- read by --> Effects (particle triggers)
 
 HUD
-  |-- depends on --> Player (reference injected by main.gd)
+  |-- depends on --> Player (reference injected by entry point)
   |-- depends on --> GameManager (signal: game_paused)
 
 Effects
-  |-- depends on --> Player (reference injected by main.gd)
+  |-- depends on --> Player (reference injected by entry point)
   |-- depends on --> Level (terrain queries)
 ```
 
@@ -191,7 +191,7 @@ Effects
 **Consequences:** ... -->
 
 <!-- TIP: Good ADR candidates:
-     - Physics engine choice (Jolt vs GodotPhysics)
+     - Physics engine choice
      - Input abstraction strategy
      - Camera system approach
      - Networking architecture

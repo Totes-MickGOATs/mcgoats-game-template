@@ -1,3 +1,7 @@
+---
+description: Audit the codebase for performance issues and report findings with suggested fixes
+---
+
 Audit the codebase for performance issues and report findings with file references and suggested fixes.
 
 ## Static Analysis (Code Patterns)

@@ -20,11 +20,11 @@ Hard-won patterns for working with Claude Code subagents in a multi-PR workflow.
 
 **Problem:** The auto-merge queue processes PRs FIFO. When PR A merges, PR B must rebase onto the new master, re-run CI, and wait for auto-merge. If PR C is also open, it waits for B, then rebases itself. This creates O(N^2) CI runs.
 
-**Real example:** Four parallel PRs (#102, #104, #106, #107) took over 45 minutes to fully merge despite each having less than 1 minute of actual changes:
-- #104 merged first (clean)
-- #106 needed 1 rebase cycle (~5 min CI)
-- #107 needed 1 rebase cycle (~5 min CI)
-- #102 needed 3+ rebase cycles (~15+ min CI) due to structural conflicts
+**Real example:** Four parallel PRs took over 45 minutes to fully merge despite each having less than 1 minute of actual changes:
+- PR A merged first (clean)
+- PR B needed 1 rebase cycle (~5 min CI)
+- PR C needed 1 rebase cycle (~5 min CI)
+- PR D needed 3+ rebase cycles (~15+ min CI) due to structural conflicts
 
 **Cost model:** N parallel PRs = up to N*(N-1)/2 CI runs in the worst case. With 5-minute CI, 4 PRs = potentially 30 minutes of queue time.
 

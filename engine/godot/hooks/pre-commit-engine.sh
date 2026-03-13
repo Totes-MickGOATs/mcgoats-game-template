@@ -19,12 +19,15 @@ fi
 # GDScript parse check
 if [ -n "$STAGED_GD" ]; then
     if command -v gdparse &>/dev/null; then
-        echo "$STAGED_GD" | while read -r f; do
-            gdparse "$f" >/dev/null 2>&1
-            if [ $? -ne 0 ]; then
+        PARSE_FAILED=0
+        while read -r f; do
+            if ! gdparse "$f" >/dev/null 2>&1; then
                 echo "GDScript parse error: $f"
-                exit 1
+                PARSE_FAILED=1
             fi
-        done
+        done <<< "$STAGED_GD"
+        if [ "$PARSE_FAILED" -ne 0 ]; then
+            exit 1
+        fi
     fi
 fi

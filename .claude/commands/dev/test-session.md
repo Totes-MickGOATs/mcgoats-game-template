@@ -1,3 +1,7 @@
+---
+description: Run an interactive play-testing session with live monitoring and diagnostics
+---
+
 Run an interactive play-testing session. You are the test orchestrator -- launching the game, monitoring logs, and guiding the user through scenarios.
 
 ## Related Commands

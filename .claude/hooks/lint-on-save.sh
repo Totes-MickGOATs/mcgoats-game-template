@@ -28,10 +28,10 @@ if [[ "$FILE" == *.py ]]; then
 fi
 
 # ── Engine-specific dispatch ────────────────────────────────────────────────
-# Source engine-specific lint hook if it exists
+# Source engine-specific lint hook if it exists (pass FILE as $1)
 ENGINE_HOOK="$CLAUDE_PROJECT_DIR/.claude/hooks/lint-on-save-engine.sh"
 if [ -f "$ENGINE_HOOK" ]; then
-    source "$ENGINE_HOOK"
+    source "$ENGINE_HOOK" "$FILE"
 fi
 
 exit 0

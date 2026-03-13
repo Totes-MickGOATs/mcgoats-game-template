@@ -9,9 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 - Initial template release
-- 8 GitHub Actions workflows (auto-merge, CI, post-merge tests, coverage, cleanup, stale, monitor, PR guard)
+- 9 GitHub Actions workflows (auto-merge, CI, post-merge tests, coverage, cleanup, stale, monitor, PR guard, template validation)
 - 3-layer master protection (Claude Code hook, git hooks, GitHub branch protection)
-- 12 Claude Code commands (ci, dev, editor)
+- 12 Claude Code commands (2 ci/, 10 dev/)
 - 52 skills (5 engine-agnostic, 47 Godot-specific)
 - Engine modules: Godot (full), Unity (stubs), Unreal (stubs)
 - Interactive setup script (`tools/setup-engine.sh`)

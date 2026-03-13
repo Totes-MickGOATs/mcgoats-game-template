@@ -17,7 +17,7 @@ Edit these files with your project's details:
 - [ ] `CLAUDE.md` — Update "Project Overview" section with your game description
 - [ ] `README.md` — Replace template description with your project's README
 - [ ] `VERSIONING.md` — Review version convention, update if needed
-- [ ] `cliff.toml` — Update `[remote]` section with your repo URL
+- [ ] `cliff.toml` — In `postprocessors`, replace `https://github.com/YOUR_ORG/YOUR_REPO` with your actual repo URL
 - [ ] `.github/template-config.json` — Set `GAME_NAME` and verify `ENGINE`
 
 ## 3. Configure GitHub Repository

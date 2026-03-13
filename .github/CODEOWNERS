@@ -1,5 +1,5 @@
 # Default — require review for CI and hook changes
-.github/workflows/ @OWNER
-.claude/ @OWNER
-.githooks/ @OWNER
-tools/setup-engine.sh @OWNER
+.github/workflows/ @Totes-MickGOATs
+.claude/ @Totes-MickGOATs
+.githooks/ @Totes-MickGOATs
+tools/setup-engine.sh @Totes-MickGOATs

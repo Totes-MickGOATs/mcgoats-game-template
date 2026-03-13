@@ -1,11 +1,11 @@
 ---
 name: game-optimization-performance
-description: "Project-specific optimization and performance skill for R8EO-X. Covers audio smoothing patterns, frame budget testing, Performance singleton benchmarks, Server API usage, profiling workflow, and known performance pitfalls. Use when diagnosing glitches, optimizing frame times, writing performance tests, or fixing audio/visual artifacts."
+description: "Project-specific optimization and performance skill. Covers audio smoothing patterns, frame budget testing, Performance singleton benchmarks, Server API usage, profiling workflow, and known performance pitfalls. Use when diagnosing glitches, optimizing frame times, writing performance tests, or fixing audio/visual artifacts."
 ---
 
 # Game Optimization & Performance
 
-Project-specific optimization patterns, benchmarking, and known pitfalls for R8EO-X.
+Project-specific optimization patterns, benchmarking, and known pitfalls.
 
 ## Architecture
 
@@ -23,7 +23,7 @@ Project-specific optimization patterns, benchmarking, and known pitfalls for R8E
 
 ### The Hierarchy (Most to Least Impact)
 
-1. **Design-level** -- Choose the right algorithm/architecture (GEVP + Jolt, sample-based audio vs synthesis)
+1. **Design-level** -- Choose the right algorithm/architecture (physics engine, sample-based audio vs synthesis)
 2. **Algorithm-level** -- Fix math that produces bad output (audio envelope smoothing, parameter clamping)
 3. **Data-level** -- Cache locality, compact storage, precalculation
 4. **Low-level/Server API** -- Direct RenderingServer/PhysicsServer/AudioServer calls (only when node overhead is the bottleneck)
@@ -605,7 +605,7 @@ Effects use WorldScale-aware distance culling:
 3. **Debug > Profiler** -- Godot's built-in profiler
 4. **Performance singleton** -- Programmatic monitoring in tests
 5. **External GPU profilers** -- NVIDIA Nsight, RenderDoc for draw call analysis
-6. **External CPU profilers** -- Callgrind (Valgrind) for C++ engine/driver profiling. Relevant for profiling GDExtensions like GEVP. Compile with debug symbols, run via `valgrind --tool=callgrind ./godot`, view results in KCachegrind. Shows Inclusive (function + children) vs Self (function only) time, call counts per function. Can reveal time spent in graphics driver vs engine code (e.g., identifying that 50% of CPU time is in `libglapi`/`i965_dri` = driver bottleneck, not engine code)
+6. **External CPU profilers** -- Callgrind (Valgrind) for C++ engine/driver profiling. Relevant for profiling GDExtensions. Compile with debug symbols, run via `valgrind --tool=callgrind ./godot`, view results in KCachegrind. Shows Inclusive (function + children) vs Self (function only) time, call counts per function. Can reveal time spent in graphics driver vs engine code (e.g., identifying that 50% of CPU time is in `libglapi`/`i965_dri` = driver bottleneck, not engine code)
 
 ### What to Profile First
 
@@ -621,5 +621,4 @@ Effects use WorldScale-aware distance culling:
 
 - `.agents/skills/debug-system/SKILL.md` -- Debug overlays, F-key map, logging
 - `.agents/skills/godot-audio-systems/SKILL.md` -- Bus management, spatial audio
-- `.agents/skills/gevp-vehicle-tuning/SKILL.md` -- Vehicle physics performance
 - `.agents/skills/godot-performance-optimization/SKILL.md` -- Generic Godot optimization (community)

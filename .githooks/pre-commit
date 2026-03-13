@@ -37,7 +37,7 @@ fi
 # ── Conventional commit message format check (via commit-msg hook) ─────────
 
 # ── Engine-specific checks ────────────────────────────────────────────────────
-ENGINE_HOOK=".githooks/pre-commit-engine"
+ENGINE_HOOK=".githooks/pre-commit-engine.sh"
 if [ -f "$ENGINE_HOOK" ]; then
     source "$ENGINE_HOOK"
 fi

@@ -1,8 +1,8 @@
 # Godot Frontend Design Skill
-# R8EO-X — Menu System Patterns, Recipes & Conventions
+# Menu System Patterns, Recipes & Conventions
 
 This skill document encodes all Godot 4 UI patterns, StyleBox recipes, scene management approaches,
-and project-specific conventions needed to build the R8EO-X menu system.
+and project-specific conventions needed to build a game menu system.
 
 ---
 
@@ -989,7 +989,7 @@ msdf_pixel_range=8
 msdf_size=48
 ```
 
-### H.3 Project Font Stack (R8EO-X)
+### H.3 Example Font Stack
 
 **Chosen fonts** (both SIL OFL 1.1 — free for commercial use, download from Google Fonts):
 
@@ -1002,8 +1002,8 @@ msdf_size=48
 
 **Why Rajdhani:**
 - Geometric, narrow-proportion sans → designed for technical/engineering display contexts
-- All-caps ("SELECT MODE", "R8EO-X") reads as intentional design, not laziness
-- Used in motorsport HUDs, F1 graphics, automotive dashboards — matches RC buggy precision theme
+- All-caps ("SELECT MODE", "GAME TITLE") reads as intentional design, not laziness
+- Used in motorsport HUDs, F1 graphics, automotive dashboards — works well for technical/precision themes
 - The #00C8FF cyan at Bold weight creates strong visual hierarchy against the black background
 - Narrow proportions fit long button labels like "RETURN TO MENU" without wrapping
 

@@ -82,17 +82,17 @@ class InputRecorder:
 
     func start_recording() -> void:
         _events.clear()
-        _start_time = Time.get_ticks_msec()
+        _start_time = get_ticks_msec()
         _recording = true
 
     func stop_recording() -> void:
         _recording = false
         save_to_file()
 
-    func _input(event: InputEvent) -> void:
+    func on_input(event) -> void:
         if not _recording:
             return
-        var elapsed = Time.get_ticks_msec() - _start_time
+        var elapsed = get_ticks_msec() - _start_time
         _events.append({
             "time": elapsed,
             "event": serialize_input_event(event)
@@ -142,7 +142,7 @@ For spatial analysis, record position samples at regular intervals:
 
 ```
 # Pseudocode — sample every 500ms
-func _on_sample_timer() -> void:
+func on_sample_timer() -> void:
     record_position_sample({
         "time": elapsed_time(),
         "position": player.global_position,
@@ -174,10 +174,10 @@ When an error occurs, immediately capture:
 
 ```
 # Pseudocode
-func _on_error(error_info: Dictionary) -> void:
+func on_error(error_info: Dictionary) -> void:
     var snapshot = {
         "error": error_info,
-        "timestamp": Time.get_datetime_string_from_system(),
+        "timestamp": get_datetime_string(),
         "scene": current_scene_path(),
         "player_state": serialize_player_state(),
         "recent_events": get_last_n_events(20),
@@ -222,7 +222,7 @@ Flag frames that exceed the budget:
 # Pseudocode
 const SPIKE_THRESHOLD_MS = 25.0  # 1.5x budget for 60fps
 
-func _process(delta: float) -> void:
+func on_frame_update(delta: float) -> void:
     var frame_ms = delta * 1000.0
     if frame_ms > SPIKE_THRESHOLD_MS:
         log_spike({
@@ -240,12 +240,12 @@ Track memory over time to detect leaks:
 
 ```
 # Pseudocode — sample every 5 seconds
-func _on_memory_sample_timer() -> void:
+func on_memory_sample_timer() -> void:
     var sample = {
         "time": elapsed_time(),
-        "static_mb": OS.get_static_memory_usage() / 1048576.0,
-        "dynamic_mb": OS.get_dynamic_memory_usage() / 1048576.0,
-        "object_count": Performance.get_monitor(OBJECT_COUNT)
+        "static_mb": get_static_memory_bytes() / 1048576.0,
+        "dynamic_mb": get_dynamic_memory_bytes() / 1048576.0,
+        "object_count": get_engine_object_count()
     }
     memory_samples.append(sample)
 
@@ -273,10 +273,10 @@ class SessionReplayer:
     func start_replay(session_file: String) -> void:
         _events = load_session_events(session_file)
         _event_index = 0
-        _replay_start_time = Time.get_ticks_msec()
+        _replay_start_time = get_ticks_msec()
 
-    func _process(delta: float) -> void:
-        var elapsed = Time.get_ticks_msec() - _replay_start_time
+    func on_frame_update(delta: float) -> void:
+        var elapsed = get_ticks_msec() - _replay_start_time
         while _event_index < _events.size():
             var event = _events[_event_index]
             if event.time > elapsed:
