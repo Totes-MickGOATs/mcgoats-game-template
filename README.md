@@ -4,6 +4,49 @@
 
 AI-powered game development template with battle-tested CI/CD, auto-merge queues, TDD enforcement, and Claude Code integration. Start new game projects with production-grade infrastructure from day one.
 
+---
+
+## First Time? Start Here
+
+This template is designed to work with **Claude Code** (Anthropic's AI coding assistant). It will walk you through the entire setup — engine selection, GitHub configuration, CI pipeline, and your first feature branch.
+
+### Option A: Interactive AI Setup (Recommended)
+
+Open a terminal in this project directory and run:
+
+```bash
+claude
+```
+
+Then type:
+
+```
+/setup
+```
+
+Claude will guide you through everything step-by-step: checking prerequisites, choosing your engine (Godot/Unity/Unreal), configuring GitHub branch protection, and verifying your CI pipeline works.
+
+### Option B: Manual Setup
+
+If you prefer to set things up yourself, follow the checklist in **[SETUP.md](SETUP.md)**.
+
+### Already Set Up?
+
+Once your project is configured, here are the key commands to know:
+
+| What you want to do | Tell Claude |
+|---------------------|-------------|
+| Start a new feature | `"Create a feature branch for <description>"` |
+| Fix a bug | `"Fix this bug: <description>"` |
+| Run tests | `/dev:run-tests` |
+| Review code quality | `/dev:review-code` |
+| Ship your changes | `"Push and create a PR"` |
+| Check CI status | `/ci:fix-ci` (if CI is failing) |
+
+All development happens on feature branches — Claude handles the branching, commits, PRs, and CI for you.
+
+---
+
 ## What You Get
 
 - **3-layer main branch protection** — Claude Code PreToolUse hook + git pre-commit hook + GitHub branch protection

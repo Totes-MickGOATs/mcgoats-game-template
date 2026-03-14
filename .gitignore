@@ -16,7 +16,8 @@ dist/
 build/
 
 # IDE
-.idea/
+.idea/*
+!.idea/runConfigurations/
 .vscode/
 *.sublime-project
 *.sublime-workspace
