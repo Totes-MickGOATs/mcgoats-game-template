@@ -19,7 +19,7 @@ jobs:
           fetch-depth: 0
 
       - name: Close stale PRs (idle >14 days, no ready-to-merge label)
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             const { data: prs } = await github.rest.pulls.list({
