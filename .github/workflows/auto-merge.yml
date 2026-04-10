@@ -41,7 +41,7 @@ jobs:
 
       - name: Find oldest ready-to-merge PR (FIFO by label time)
         id: find-pr
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             const { data: prs } = await github.rest.pulls.list({
@@ -99,7 +99,7 @@ jobs:
       - name: Check CI status
         if: steps.find-pr.outputs.found == 'true'
         id: ci-status
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             const pr_number = ${{ steps.find-pr.outputs.number }};
@@ -149,7 +149,7 @@ jobs:
         if: >
           steps.find-pr.outputs.found == 'true' &&
           steps.ci-status.outputs.failed == 'true'
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             const pr_number = ${{ steps.find-pr.outputs.number }};
@@ -230,7 +230,7 @@ jobs:
           steps.ci-status.outputs.passed == 'true' &&
           steps.up-to-date.outputs.up_to_date == 'false'
         id: rebase-update
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           github-token: ${{ secrets.MERGE_TOKEN || github.token }}
           script: |
@@ -272,7 +272,7 @@ jobs:
           steps.ci-status.outputs.pending == 'true' &&
           steps.up-to-date.outputs.up_to_date == 'false'
         id: stale-update
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           github-token: ${{ secrets.MERGE_TOKEN || github.token }}
           script: |
@@ -296,7 +296,7 @@ jobs:
           steps.find-pr.outputs.found == 'true' &&
           (steps.rebase-update.outputs.updated == 'true' ||
            steps.stale-update.outputs.updated == 'true')
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           github-token: ${{ secrets.MERGE_TOKEN || github.token }}
           script: |
@@ -320,7 +320,7 @@ jobs:
           steps.find-pr.outputs.found == 'true' &&
           steps.ci-status.outputs.pending == 'true' &&
           steps.up-to-date.outputs.up_to_date == 'true'
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           github-token: ${{ secrets.MERGE_TOKEN || github.token }}
           script: |
@@ -344,7 +344,7 @@ jobs:
           steps.find-pr.outputs.found == 'true' &&
           (steps.rebase-update.outputs.updated == 'true' ||
            steps.stale-update.outputs.updated == 'true')
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           github-token: ${{ secrets.MERGE_TOKEN || github.token }}
           script: |
@@ -414,7 +414,7 @@ jobs:
           steps.find-pr.outputs.found == 'true' &&
           steps.ci-status.outputs.passed == 'true' &&
           steps.up-to-date.outputs.up_to_date == 'true'
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           github-token: ${{ secrets.MERGE_TOKEN || github.token }}
           script: |

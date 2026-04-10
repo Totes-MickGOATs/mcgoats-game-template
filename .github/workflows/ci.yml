@@ -57,7 +57,7 @@ jobs:
       - name: Comment coverage delta on PR
         if: github.event_name == 'pull_request' && always()
         continue-on-error: true
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             const body = `### Test Coverage Report\n\`\`\`\n${process.env.REPORT}\n\`\`\`\n`;
@@ -101,7 +101,7 @@ jobs:
       - name: Detect cross-PR file conflicts
         if: github.event_name == 'pull_request'
         continue-on-error: true
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             const prNumber = context.issue.number;
